@@ -1,4 +1,4 @@
-<img width="2760" height="1400" alt="vrchat_avatar_tagger_github_banner" src="https://github.com/user-attachments/assets/e79bd5bf-dfea-4ccc-8d4d-10e331afb42e" />
+<img width="2720" height="1600" alt="vrchat_avatar_tagger_logo_stacked" src="https://github.com/user-attachments/assets/79aab990-edbb-4667-9dd7-cd539b39438a" />
 
 
 # vrchat-avatar-tagger
