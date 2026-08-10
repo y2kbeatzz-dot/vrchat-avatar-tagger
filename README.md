@@ -1,3 +1,6 @@
+<img width="2760" height="1400" alt="vrchat_avatar_tagger_github_banner" src="https://github.com/user-attachments/assets/e79bd5bf-dfea-4ccc-8d4d-10e331afb42e" />
+
+
 # vrchat-avatar-tagger
 Bulk-apply VRChat Content Warning tags to all your avatars at once from the command line.
 [README.md](https://github.com/user-attachments/files/30912286/README.md)
