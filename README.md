@@ -1,4 +1,4 @@
-![VRChat Avatar Tagger](banner.png)
+![VRChat Avatar Tagger] ![Banner](banner.png)
 
 # vrchat-avatar-tagger
 
