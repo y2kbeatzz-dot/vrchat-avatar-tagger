@@ -10,10 +10,12 @@ Content Warning tag(s) to each one -- without touching any other tags
 (like your custom search tags) that are already on the avatar.
 
 USAGE:
-  python3 tag_avatars.py --tags sex                        # preview nothing changed yet? no, this applies for real
-  python3 tag_avatars.py --tags sex --dry-run               # preview only, changes nothing
-  python3 tag_avatars.py --tags sex,violence,gore            # multiple tags at once
-  python3 tag_avatars.py --list-tags                         # show valid tag names and exit
+  python3 tag_avatars.py --tags sex --dry-run                # preview only, changes nothing
+  python3 tag_avatars.py --tags sex                           # apply to ALL your avatars
+  python3 tag_avatars.py --tags sex --select                  # pick specific avatars interactively
+  python3 tag_avatars.py --tags sex --limit 20                # only tag the first 20 that need it
+  python3 tag_avatars.py --tags sex,violence,gore              # multiple tags at once
+  python3 tag_avatars.py --list-tags                           # show valid tag names and exit
 
 VALID TAG NAMES (see --list-tags): sex, adult, violence, gore, horror
 
@@ -78,6 +80,17 @@ def parse_args():
         action="store_true",
         help="Print the valid tag names and exit.",
     )
+    parser.add_argument(
+        "--select",
+        action="store_true",
+        help="Show a numbered list of your avatars and pick which ones to tag interactively.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Only tag at most this many avatars (the ones that need it, in order).",
+    )
     args = parser.parse_args()
 
     if args.list_tags:
@@ -96,7 +109,49 @@ def parse_args():
             f"Valid names: {', '.join(CONTENT_TAGS)}"
         )
 
-    return [CONTENT_TAGS[n] for n in names], args.dry_run
+    return [CONTENT_TAGS[n] for n in names], args.dry_run, args.select, args.limit
+
+
+def parse_selection(selection_str, total):
+    """Parse input like '1,3,5-10' or 'all' or 'none' into a set of 1-based indices."""
+    selection_str = selection_str.strip().lower()
+    if selection_str in ("all", "*"):
+        return set(range(1, total + 1))
+    if selection_str in ("", "none"):
+        return set()
+
+    chosen = set()
+    for part in selection_str.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start, end = part.split("-", 1)
+            try:
+                start, end = int(start), int(end)
+            except ValueError:
+                print(f"  (ignoring invalid range: {part!r})")
+                continue
+            chosen.update(range(start, end + 1))
+        else:
+            try:
+                chosen.add(int(part))
+            except ValueError:
+                print(f"  (ignoring invalid entry: {part!r})")
+    return {n for n in chosen if 1 <= n <= total}
+
+
+def select_avatars_interactively(all_avatars):
+    print()
+    for i, avatar in enumerate(all_avatars, 1):
+        tag_note = ", ".join(avatar.tags or []) or "no tags"
+        print(f"  {i:3d}) {avatar.name}  [{tag_note}]")
+    print()
+    print("Enter which avatars to tag: numbers separated by commas, ranges like 5-10,")
+    print("or type 'all' for every avatar shown above.")
+    selection_str = input("Selection: ")
+    chosen_indices = parse_selection(selection_str, len(all_avatars))
+    return [all_avatars[i - 1] for i in sorted(chosen_indices)]
 
 
 def login():
@@ -192,7 +247,7 @@ def fetch_all_own_avatars(avatar_api):
 
 
 def main():
-    tags_to_apply, dry_run = parse_args()
+    tags_to_apply, dry_run, select_mode, limit = parse_args()
 
     api_client = login()
     avatar_api = avatars_api.AvatarsApi(api_client)
@@ -200,18 +255,29 @@ def main():
     all_avatars = fetch_all_own_avatars(avatar_api)
     print(f"Found {len(all_avatars)} avatars.\n")
 
-    updated, skipped, failed = 0, 0, 0
+    if select_mode:
+        avatars_to_process = select_avatars_interactively(all_avatars)
+        print(f"\nSelected {len(avatars_to_process)} avatar(s).\n")
+    else:
+        avatars_to_process = all_avatars
 
-    for i, avatar in enumerate(all_avatars, 1):
+    updated, skipped, failed = 0, 0, 0
+    total = len(avatars_to_process)
+
+    for i, avatar in enumerate(avatars_to_process, 1):
+        if limit is not None and updated >= limit:
+            print(f"\nReached --limit {limit}, stopping.")
+            break
+
         existing_tags = set(avatar.tags or [])
         new_tags = existing_tags | set(tags_to_apply)
 
         if new_tags == existing_tags:
-            print(f"[{i}/{len(all_avatars)}] {avatar.name} -- already tagged, skipping")
+            print(f"[{i}/{total}] {avatar.name} -- already tagged, skipping")
             skipped += 1
             continue
 
-        print(f"[{i}/{len(all_avatars)}] {avatar.name} -- adding {tags_to_apply}")
+        print(f"[{i}/{total}] {avatar.name} -- adding {tags_to_apply}")
 
         if dry_run:
             updated += 1
