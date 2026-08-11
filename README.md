@@ -32,7 +32,8 @@ The app lets you:
 - Preview with "Dry run" before applying anything for real
 - Watch a live log and progress bar while it runs, with a Stop button if you change your mind
 
-![screenshot placeholder](screenshot.png)
+![screenshot placeholder](<img width="760" height="640" alt="screenshot" src="https://github.com/user-attachments/assets/9a27dc00-9b85-4310-93f0-9b82fa33d459" />
+)
 
 ## Command-line version
 
