@@ -1,11 +1,4 @@
-<img width="2172" height="724" alt="ChatGPT Image Aug 10, 2026, 10_10_30 PM" src="https://github.com/user-attachments/assets/f366d58e-8611-47aa-b097-db87575f141c" />
-
-
-
-
-# vrchat-avatar-tagger
-Bulk-apply VRChat Content Warning tags to all your avatars at once from the command line.
-[README.md](https://github.com/user-attachments/files/30912286/README.md)
+[README.md](https://github.com/user-attachments/files/30920078/README.md)
 # vrchat-avatar-tagger
 
 A small command-line tool to bulk-apply [VRChat Content Warning tags](https://hello.vrchat.com/creator-guidelines) (Sexually Suggestive, Adult Language and Themes, Graphic Violence, Excessive Gore, Extreme Horror) to **all of your own avatars** at once, instead of clicking through each one individually on the VRChat website.
@@ -19,7 +12,33 @@ Useful if you have a large number of avatars and need to get them properly label
 - Adds the content warning tag(s) you choose to each avatar that doesn't already have them
 - **Never removes** any existing tags, content-warning or otherwise
 
-## Install
+## GUI App (recommended)
+
+If you'd rather not deal with the command line at all, use the desktop app version.
+
+**Windows:** double-click `run_gui.bat` (it installs the one required package automatically the first time).
+
+**Mac/Linux:** run:
+```bash
+pip install vrchatapi --break-system-packages
+python3 tag_avatars_gui.py
+```
+
+The app lets you:
+- Log in (handles email/authenticator 2FA with a popup)
+- Check the box for each content warning tag you want to apply
+- See all your avatars in a searchable list and pick exactly which ones to tag (or "Select All")
+- Set a limit on how many get tagged in one run
+- Preview with "Dry run" before applying anything for real
+- Watch a live log and progress bar while it runs, with a Stop button if you change your mind
+
+![screenshot placeholder](screenshot.png)
+
+## Command-line version
+
+If you prefer the terminal or want to script/automate this, use `tag_avatars.py` instead.
+
+### Install
 
 ```bash
 pip install vrchatapi --break-system-packages
@@ -27,7 +46,7 @@ pip install vrchatapi --break-system-packages
 
 (or `pip install -r requirements.txt`)
 
-## Usage
+### Usage
 
 Always preview first with `--dry-run` — it prints exactly what would change without touching your account:
 
@@ -52,6 +71,35 @@ See all valid tag names:
 ```bash
 python3 tag_avatars.py --list-tags
 ```
+
+### Pick specific avatars
+
+Instead of tagging every avatar, use `--select` to get a numbered list you can choose from:
+
+```bash
+python3 tag_avatars.py --tags sex --select
+```
+
+You'll see something like:
+
+```
+    1) Emma  [no tags]
+    2) IRENE  [content_violence]
+    3) Riptide  [content_sex]
+Selection: 1,2,5-10
+```
+
+Type comma-separated numbers, ranges (`5-10`), or `all`.
+
+### Cap how many get tagged
+
+Use `--limit` to only tag the first N avatars that need it (handy for testing on a small batch first):
+
+```bash
+python3 tag_avatars.py --tags sex --limit 20
+```
+
+`--select` and `--limit` can be combined — `--limit` will cap however many you picked.
 
 | Name       | VRChat label                  |
 |------------|--------------------------------|
