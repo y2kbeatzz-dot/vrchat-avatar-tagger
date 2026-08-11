@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/30920078/README.md)
 # vrchat-avatar-tagger
 
 A small command-line tool to bulk-apply [VRChat Content Warning tags](https://hello.vrchat.com/creator-guidelines) (Sexually Suggestive, Adult Language and Themes, Graphic Violence, Excessive Gore, Extreme Horror) to **all of your own avatars** at once, instead of clicking through each one individually on the VRChat website.
@@ -32,8 +31,7 @@ The app lets you:
 - Preview with "Dry run" before applying anything for real
 - Watch a live log and progress bar while it runs, with a Stop button if you change your mind
 
-![screenshot placeholder](<img width="760" height="640" alt="screenshot" src="https://github.com/user-attachments/assets/9a27dc00-9b85-4310-93f0-9b82fa33d459" />
-)
+![screenshot placeholder](screenshot.png)
 
 ## Command-line version
 
