@@ -1,4 +1,5 @@
-<img width="300" height="60" alt="gemini-svg" src="https://github.com/user-attachments/assets/10aade69-151e-44f1-b141-9b0d2f7a0c25" />
+<img width="1983" height="793" alt="ChatGPT Image Aug 10, 2026, 10_01_18 PM" src="https://github.com/user-attachments/assets/92ee10d0-c1e1-47cc-abe8-1e288b467577" />
+
 
 
 # vrchat-avatar-tagger
