@@ -1,3 +1,5 @@
+<img width="2172" height="724" alt="ChatGPT Image Aug 10, 2026, 10_10_30 PM" src="https://github.com/user-attachments/assets/a1bba5b2-5c74-46b8-9eb2-5937866198e1" />
+
 # vrchat-avatar-tagger
 
 A small command-line tool to bulk-apply [VRChat Content Warning tags](https://hello.vrchat.com/creator-guidelines) (Sexually Suggestive, Adult Language and Themes, Graphic Violence, Excessive Gore, Extreme Horror) to **all of your own avatars** at once, instead of clicking through each one individually on the VRChat website.
