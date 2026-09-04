@@ -176,7 +176,7 @@ def login():
     vrchatapi.Configuration.set_default(configuration)
 
     api_client = vrchatapi.ApiClient(configuration)
-    api_client.user_agent = "vrchat-avatar-tagger/1.0 (github.com/USERNAME/vrchat-avatar-tagger)"
+    api_client.user_agent = "vrchat-avatar-tagger/1.1 (github.com/y2kbeatzz-dot/vrchat-avatar-tagger)"
 
     # Persist the login session (auth + 2FA cookies) to disk. VRChat only
     # allows a limited number of simultaneous username/password logins

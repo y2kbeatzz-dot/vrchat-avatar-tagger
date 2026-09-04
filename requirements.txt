@@ -1,1 +1,1 @@
-vrchatapi
+vrchatapi==1.20.9

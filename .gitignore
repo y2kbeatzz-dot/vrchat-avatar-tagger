@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.py[cod]
+vrchat_session.cookies
+tagger_progress.json
+tagger_error.log

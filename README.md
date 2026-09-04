@@ -19,11 +19,14 @@ Useful if you have a large number of avatars and need to get them properly label
 
 If you'd rather not deal with the command line at all, use the desktop app version.
 
-**Windows:** double-click `run_gui.bat` (it installs the one required package automatically the first time).
+**Windows:** install [Python 3](https://www.python.org/downloads/windows/) and check
+**Add python.exe to PATH** during setup. Then extract the whole ZIP and double-click
+`run_gui.bat`. The launcher creates a private environment and installs the required
+package automatically. If startup fails, the launcher stays open and shows the error.
 
 **Mac/Linux:** run:
 ```bash
-pip install vrchatapi --break-system-packages
+pip install -r requirements.txt --break-system-packages
 python3 tag_avatars_gui.py
 ```
 
@@ -48,7 +51,7 @@ If you prefer the terminal or want to script/automate this, use `tag_avatars.py`
 ### Install
 
 ```bash
-pip install vrchatapi --break-system-packages
+pip install -r requirements.txt --break-system-packages
 ```
 
 (or `pip install -r requirements.txt`)
@@ -128,6 +131,9 @@ python3 tag_avatars.py --tags sex --limit 20
 
 - Your username/password are only used locally to log into VRChat's own servers, exactly like the website login. They're entered at runtime (never hardcoded) and nothing is sent anywhere besides VRChat's API.
 - After a successful login, the tool saves a session file (`vrchat_session.cookies`) next to the script so re-running it doesn't need a fresh login every time. **Don't share or commit this file** — it's as sensitive as being logged in. It's already excluded via `.gitignore`.
+- If the avatar list cannot load, the GUI displays the error and writes technical
+  details to `tagger_error.log`. Do not post that log publicly without checking it
+  for account-related information first.
 - VRChat limits how many login sessions and requests you can make in a short window. The script pauses briefly between requests; don't remove that.
 - This uses [`vrchatapi`](https://github.com/vrchatapi/vrchatapi-python), an unofficial but actively maintained community wrapper around VRChat's API. It isn't officially supported by VRChat.
 

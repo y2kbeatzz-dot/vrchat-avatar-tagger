@@ -14,12 +14,14 @@ or double-click run_gui.bat on Windows.
 import atexit
 import http.cookiejar
 import json
+import math
 import os
 import queue
 import threading
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import time
+import traceback
 
 import vrchatapi
 from vrchatapi.api import authentication_api, avatars_api
@@ -432,15 +434,22 @@ class App(tk.Tk):
         preset = [v for v, var in self.tag_vars.items() if var.get()]
         return preset + [t for t in self.extra_tags if t not in preset]
 
-    def _add_banner_if_available(self, parent, target_width=560):
-        """Show banner.png at the top of the given frame, scaled to target_width.
+    def _add_banner_if_available(self, parent, target_width=560, target_height=175):
+        """Show banner.png, constrained so it cannot cover the login form.
         Uses plain tkinter (no Pillow dependency) -- silently skipped if the
         file is missing or the image fails to load, so this never crashes the app."""
         if not os.path.exists(BANNER_FILE):
             return
         try:
             img = tk.PhotoImage(file=BANNER_FILE)
-            factor = max(1, round(img.width() / target_width))
+            # PhotoImage only supports integer subsampling. Account for BOTH
+            # dimensions: a square or portrait image must not become 500px tall
+            # and push the username/password controls outside the window.
+            factor = max(
+                1,
+                math.ceil(img.width() / target_width),
+                math.ceil(img.height() / target_height),
+            )
             if factor > 1:
                 img = img.subsample(factor, factor)
             self.banner_image = img  # keep a reference so it isn't garbage-collected
@@ -481,7 +490,7 @@ class App(tk.Tk):
         vrchatapi.Configuration.set_default(configuration)
 
         api_client = vrchatapi.ApiClient(configuration)
-        api_client.user_agent = "vrchat-avatar-tagger-gui/1.0 (github.com/USERNAME/vrchat-avatar-tagger)"
+        api_client.user_agent = "vrchat-avatar-tagger-gui/1.1 (github.com/y2kbeatzz-dot/vrchat-avatar-tagger)"
 
         cookie_jar = http.cookiejar.MozillaCookieJar(COOKIE_FILE)
         if os.path.exists(COOKIE_FILE):
@@ -529,18 +538,26 @@ class App(tk.Tk):
         self._log(f"Fetching your avatars...")
 
         def worker():
-            avatars = []
-            offset = 0
-            page_size = 100
-            while True:
-                page = self.avatar_api.search_avatars(user="me", n=page_size, offset=offset, release_status="all")
-                if not page:
-                    break
-                avatars.extend(page)
-                offset += page_size
-                time.sleep(REQUEST_DELAY)
-            self.all_avatars = avatars
-            self.log_queue.put(("avatars_loaded", None))
+            try:
+                avatars = []
+                offset = 0
+                page_size = 100
+                while True:
+                    page = self.avatar_api.search_avatars(
+                        user="me", n=page_size, offset=offset, release_status="all"
+                    )
+                    if not page:
+                        break
+                    avatars.extend(page)
+                    if len(page) < page_size:
+                        break
+                    offset += page_size
+                    time.sleep(REQUEST_DELAY)
+                self.all_avatars = avatars
+                self.log_queue.put(("avatars_loaded", None))
+            except Exception as e:
+                self.log_queue.put(("load_failed", f"{type(e).__name__}: {e}"))
+                self._write_error_log("Avatar loading failed", e)
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -741,6 +758,16 @@ class App(tk.Tk):
     def _log(self, message):
         self.log_queue.put(("log", message))
 
+    def _write_error_log(self, heading, error):
+        """Keep a useful local traceback instead of letting worker failures vanish."""
+        try:
+            path = os.path.join(SCRIPT_DIR, "tagger_error.log")
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] {heading}\n")
+                traceback.print_exception(type(error), error, error.__traceback__, file=f)
+        except Exception:
+            pass
+
     def _poll_log_queue(self):
         try:
             while True:
@@ -753,6 +780,13 @@ class App(tk.Tk):
                 elif kind == "avatars_loaded":
                     self._refresh_avatar_list()
                     self._log(f"Found {len(self.all_avatars)} avatars.")
+                elif kind == "load_failed":
+                    self._log("Could not load avatars: " + payload)
+                    self._log("Details were saved to tagger_error.log.")
+                    messagebox.showerror(
+                        "Could not load avatars",
+                        payload + "\n\nSee tagger_error.log next to the app for details.",
+                    )
                 elif kind == "progress":
                     self.progress.config(value=payload)
                     self._refresh_avatar_list()
