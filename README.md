@@ -31,29 +31,59 @@ Useful if you have a large number of avatars and need to get them properly label
 - Adds the content warning tag(s) you choose to each avatar that doesn't already have them
 - **Never removes** any existing tags, content-warning or otherwise
 
+## About the creator
+
+**Created by Ksyusha (Ксюша)** · [My profiles](https://guns.lol/life999)
+
+### Why I made it
+
+Managing a large VRChat avatar collection can mean opening the same pages repeatedly just to apply or adjust content-warning tags. I wanted a simpler way to select my own avatars, preview changes, and update the tags in a single place without accidentally touching unrelated tags.
+
+### How I built it
+
+VRChat Avatar Tagger is a Python project using the community `vrchatapi` client for authentication and avatar updates. The desktop UI was redesigned in **Qt / PySide6**, and **PyInstaller** packages it for macOS and Windows. GitHub Actions builds the releases, with custom macOS DMGs and a Windows setup wizard. Preview mode, individual edits, and resume controls are included so changes are easier to review and manage.
+
+**[🌐 Project website](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/)** · **[💜 Ksyusha's profiles](https://guns.lol/life999)** · **[📦 Releases](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases)**
+
+## New in v1.5: redesigned desktop interface
+
+The desktop application has been rebuilt with **Qt (PySide6)** instead of the classic Tkinter look. It now includes a modern responsive desktop layout with **dark/light themes**, sidebar navigation, searchable avatar table, selection statistics, a dedicated **Tag Studio**, interactive progress, and an activity history view. Bulk updates, content warning/custom tags, individual avatar edits, 2FA, dry runs, stop, and resume still work.
+
+<p align="center"><img src="assets/ui-preview.svg" width="100%" alt="Illustrated design preview of the new Qt desktop interface"></p>
+
+*Illustrated UI preview, not a live account screenshot.*
+
+### Custom installers
+
+- **Mac Apple Silicon / Intel:** download the matching **branded DMG**. Open it and drag the app onto Applications inside the custom installer window.
+- **Windows:** use the new **Setup EXE** for a custom wizard with your install folder, Start Menu shortcut, optional desktop icon, and uninstaller. A **portable ZIP** remains available.
+- **From source:** `run_gui_mac.command` on macOS or `run_gui.bat` on Windows starts the new Qt UI in a private Python environment.
+
+[**Download the latest release**](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest) · [**Official website**](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/)
+
 ## GUI App (recommended)
 
 If you'd rather not deal with the command line at all, use the desktop app version.
 
 **macOS (Apple Silicon or Intel):** download the matching DMG from the [latest GitHub release](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest), open it, and drag **VRChat Avatar Tagger.app** into **Applications**. No Python installation is needed for release builds. These community builds are currently unsigned and not notarized; if macOS blocks launch, use **System Settings → Privacy & Security → Open Anyway** after confirming you trust the download.
 
-**Windows:** download and extract the [Windows ZIP release](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest), then open the included app. The original `run_gui.bat` source launcher remains available.
+**Windows:** use the [custom Setup EXE](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest) for guided installation, or download and extract the portable Windows ZIP. The `run_gui.bat` source launcher remains available.
 
-**macOS/Linux (source install):** install Python 3 with tkinter support and use a private virtual environment:
+**macOS/Linux (source install):** install Python 3 and use a private virtual environment:
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python3 -m pip install -r requirements.txt
-.venv/bin/python3 tag_avatars_gui.py
+.venv/bin/python3 tag_avatars_qt.py
 ```
 
-On Mac you can also use `run_gui_mac.command` (the first run installs dependencies). On Mac, app data is saved to `~/Library/Application Support/VRChat Avatar Tagger/` so packaged apps can run without writing into the app bundle.
+On Mac you can also use `run_gui_mac.command` (the first run installs the Qt and VRChat API dependencies). On Mac, app data is saved to `~/Library/Application Support/VRChat Avatar Tagger/` so packaged apps can run without writing into the app bundle.
 
 **Website:** [VRChat Avatar Tagger Downloads](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/) · [All Releases](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases)
 
-**Maintainers:** merges to `main` build macOS Apple Silicon DMG, macOS Intel DMG, and Windows ZIP with the project icon, then automatically create or update the version in `VERSION` under the repository’s **Releases** tab. To publish a new numbered release, update `VERSION` (and `RELEASE_NOTES.md`) in a commit to `main`. `.github/workflows/pages.yml` deploys the website when Pages is configured with **GitHub Actions** as its build/deployment source. Check Actions for build and deployment status.
+**Maintainers:** merges to `main` build macOS Apple Silicon custom DMG, macOS Intel custom DMG, Windows guided Setup EXE, and portable Windows ZIP with the project icon, then automatically create or update the version in `VERSION` under the repository’s **Releases** tab. To publish a new numbered release, update `VERSION` (and `RELEASE_NOTES.md`) in a commit to `main`. `.github/workflows/pages.yml` deploys the website when Pages is configured with **GitHub Actions** as its build/deployment source. Check Actions for build and deployment status.
 
-The app lets you:
+The new Qt desktop app lets you:
 - Log in (handles email/authenticator 2FA with a popup)
 - Choose **Add** or **Remove** for the tags you pick — remove works exactly like add, just in reverse, and never touches other tags
 - Check the box for each content warning tag you want to apply or remove
@@ -65,7 +95,7 @@ The app lets you:
 - **Resume automatically**: progress is saved to `tagger_progress.json` in the local application data directory as each avatar is updated, so if you stop a run (or the app closes) partway through, re-running the same tags/action skips whatever's already done. Uncheck "Resume" or hit "Clear saved progress" to start fresh.
 - Watch a live log and progress bar while it runs, with a Stop button if you change your mind
 
-![The VRChat Avatar Tagger app window, showing the tag checkboxes, a searchable avatar list, and a live log](screenshot.png)
+<!-- Historical Tkinter screenshot retained as screenshot.png for archival reference. -->
 
 ## Command-line version
 

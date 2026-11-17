@@ -8,11 +8,17 @@ on:
       - "RELEASE_NOTES.md"
       - "assets/icon.svg"
       - "scripts/build_icons.py"
+      - "scripts/build_installer_art.py"
+      - "installer/windows.iss"
+      - "tag_avatars_qt.py"
+      - "tagger_core.py"
       - "tag_avatars.py"
       - "tag_avatars_gui.py"
       - "app_paths.py"
       - "requirements.txt"
       - "banner.png"
+      - "run_gui_mac.command"
+      - "run_gui.bat"
       - ".github/workflows/release.yml"
   workflow_dispatch:
 
@@ -22,6 +28,7 @@ permissions:
 jobs:
   build:
     name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
@@ -35,37 +42,83 @@ jobs:
           - runner: windows-latest
             platform: Windows
             artifact: VRChat-Avatar-Tagger-Windows.zip
-    runs-on: ${{ matrix.runner }}
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pyinstaller Pillow
-      - name: Generate app icons (PNG, macOS ICNS and Windows ICO)
-        run: python scripts/build_icons.py
-      - name: Build desktop app with app icon
-        run: python -m PyInstaller --noconfirm --clean --windowed --name "VRChat Avatar Tagger" --icon "assets/generated/app-icon.${{ runner.os == 'Windows' && 'ico' || 'icns' }}" --collect-all vrchatapi --add-data "banner.png:." --add-data "assets/generated/app-icon.png:." tag_avatars_gui.py
-      - name: Package macOS DMG
+      - name: Validate Python sources
+        run: python -m py_compile tag_avatars_qt.py tagger_core.py tag_avatars.py app_paths.py
+      - name: Create app and installer artwork
+        run: |
+          python scripts/build_icons.py
+          python scripts/build_installer_art.py
+      - name: Build branded Qt desktop app
+        run: python -m PyInstaller --noconfirm --clean --windowed --name "VRChat Avatar Tagger" --icon "assets/generated/app-icon.${{ runner.os == 'Windows' && 'ico' || 'icns' }}" --collect-all vrchatapi --add-data "assets/generated/app-icon.png:." tag_avatars_qt.py
+
+      - name: Install macOS DMG authoring tool
+        if: runner.os == 'macOS'
+        run: brew install create-dmg
+      - name: Package custom macOS installer (DMG)
         if: runner.os == 'macOS'
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p dmg-staging
           cp -R "dist/VRChat Avatar Tagger.app" dmg-staging/
-          ln -s /Applications dmg-staging/Applications
-          hdiutil create -volname "VRChat Avatar Tagger" -srcfolder dmg-staging -ov -format UDZO "${{ matrix.artifact }}"
-      - name: Package Windows ZIP
+          create-dmg \
+            --volname "VRChat Avatar Tagger" \
+            --volicon "assets/generated/app-icon.icns" \
+            --background "assets/generated/installer-dmg-bg.png" \
+            --window-pos 180 120 \
+            --window-size 720 460 \
+            --icon-size 108 \
+            --icon "VRChat Avatar Tagger.app" 180 254 \
+            --hide-extension "VRChat Avatar Tagger.app" \
+            --app-drop-link 540 254 \
+            --no-internet-enable \
+            "${{ matrix.artifact }}" "dmg-staging"
+
+      - name: Package portable Windows ZIP
         if: runner.os == 'Windows'
         shell: pwsh
         run: Compress-Archive -Path "dist/VRChat Avatar Tagger/*" -DestinationPath "${{ matrix.artifact }}" -Force
+      - name: Build custom Windows setup wizard (EXE)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $compiler = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          if ($compiler) {
+            $iscc = $compiler.Source
+          } else {
+            $candidates = @(
+              "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+              "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+              "C:\ProgramData\chocolatey\bin\ISCC.exe"
+            )
+            $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          if (-not $iscc) {
+            choco install innosetup -y --no-progress
+            $iscc = "C:\ProgramData\chocolatey\bin\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler was not found." }
+          & $iscc "installer\windows.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed: $LASTEXITCODE" }
+          Copy-Item "dist\installer\VRChat-Avatar-Tagger-Setup-Windows.exe" "." -Force
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}
-          path: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}
+            VRChat-Avatar-Tagger-Setup-Windows.exe
           if-no-files-found: error
           retention-days: 7
 
@@ -92,12 +145,12 @@ jobs:
           else
             gh release create "$tag" release-files/* \
               --target "$GITHUB_SHA" \
-              --title "VRChat Avatar Tagger $tag — macOS + Windows" \
+              --title "VRChat Avatar Tagger $tag — Redesigned UI + Custom Installers" \
               --notes-file RELEASE_NOTES.md \
               --latest
           fi
-          echo "Verified release assets:"
           gh release view "$tag" --json assets -q '.assets[].name' | tee release-asset-list.txt
           grep -Fqx "VRChat-Avatar-Tagger-macOS-Apple-Silicon.dmg" release-asset-list.txt
           grep -Fqx "VRChat-Avatar-Tagger-macOS-Intel.dmg" release-asset-list.txt
           grep -Fqx "VRChat-Avatar-Tagger-Windows.zip" release-asset-list.txt
+          grep -Fqx "VRChat-Avatar-Tagger-Setup-Windows.exe" release-asset-list.txt
