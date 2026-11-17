@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+<title id="title">VRChat Avatar Tagger icon</title>
+<desc id="desc">Lavender avatar tag with cyan and pink labels on a neon violet rounded square.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#30114e"/><stop offset=".6" stop-color="#240d4f"/><stop offset="1" stop-color="#110c27"/></linearGradient>
+  <linearGradient id="tag" x1=".18" y1="0" x2=".85" y2="1"><stop stop-color="#ffe0ff"/><stop offset=".55" stop-color="#deb0ff"/><stop offset="1" stop-color="#a97af5"/></linearGradient>
+  <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff60d2"/><stop offset="1" stop-color="#762af2"/></linearGradient>
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="25"/></filter>
+  <clipPath id="rounded"><rect x="40" y="40" width="944" height="944" rx="220"/></clipPath>
+</defs>
+<rect x="40" y="40" width="944" height="944" rx="220" fill="url(#bg)"/>
+<g clip-path="url(#rounded)">
+  <ellipse cx="512" cy="540" rx="430" ry="258" fill="none" stroke="#d62cff" stroke-width="30" opacity=".35" filter="url(#glow)"/>
+  <ellipse cx="512" cy="540" rx="430" ry="258" fill="none" stroke="#d62cff" stroke-width="30" opacity=".52"/>
+  <circle cx="515" cy="420" r="300" fill="#ad43f1" opacity=".10"/>
+  <rect x="65" y="63" width="894" height="896" rx="215" fill="none" stroke="url(#rim)" stroke-width="28" opacity=".8"/>
+  <path d="M157 695 321 363 612 251 770 276 884 406 841 709 693 888 334 831Z" fill="url(#tag)" stroke="#a342f0" stroke-width="28" stroke-linejoin="round"/>
+  <path d="M183 688 333 378 612 282" fill="none" stroke="#fff0ff" stroke-width="19" opacity=".8" stroke-linecap="round"/>
+  <ellipse cx="776" cy="318" rx="78" ry="82" fill="#32105d" stroke="#f6e3ff" stroke-width="23"/>
+  <ellipse cx="776" cy="318" rx="44" ry="47" fill="#1c0c43"/>
+  <path d="M739 270Q745 148 843 153Q947 157 954 258" fill="none" stroke="#e0a5ff" stroke-width="35" stroke-linecap="round"/>
+  <path d="M302 508 334 389 439 452 540 408 593 482 595 639 337 677Z" fill="#2e105f"/>
+  <ellipse cx="464" cy="567" rx="121" ry="115" fill="#2e105f"/>
+  <ellipse cx="453" cy="706" rx="168" ry="82" fill="#2e105f"/>
+  <path d="M360 518 435 460 452 571 496 482 518 600 570 536 561 470 422 427Z" fill="#deb8ff"/>
+  <rect x="624" y="524" width="191" height="72" rx="26" fill="#31ecf8" stroke="#b4ffff" stroke-width="6"/>
+  <circle cx="657" cy="557" r="13" fill="#2e105f"/>
+  <rect x="607" y="617" width="191" height="72" rx="26" fill="#fa40b5" stroke="#ffb4e8" stroke-width="6"/>
+  <circle cx="642" cy="650" r="13" fill="#2e105f"/>
+  <path d="M252 252 265 299 312 312 265 325 252 372 239 325 192 312 239 299Z" fill="#50f1ff"/>
+  <path d="M815 744 826 785 867 796 826 807 815 848 804 807 763 796 804 785Z" fill="#50f1ff"/>
+</g>
+</svg>
