@@ -1,20 +1,25 @@
-# VRChat Avatar Tagger v1.5.3 — Secure macOS connection fix
+# VRChat Avatar Tagger v1.5.4 — Reliable Apply + UI Fixes
 
-## Fixed
-- **macOS VRChat sign-in SSL certificate errors:** the desktop app now verifies the API's HTTPS certificates against the trusted certificates in your Mac's system Keychain via `truststore`, rather than relying solely on packaged Python/OpenSSL CA roots.
-- Windows also uses the native trusted certificate store, while Linux continues with its existing trusted OpenSSL system roots.
-- Certificate verification **remains enabled** with full hostname checks; no `verify=False`, no ignored SSL warnings, and no automatic installation of trust roots.
-- Clear, friendly guidance when a VPN, HTTPS-filtering proxy, school/work network, or untrusted root certificate blocks the secure connection.
-- Builds bundle the native TLS trust library in both Mac DMG packages and Windows installer/ZIP.
+## Tag updates that actually save
+- Separate **Preview changes (no upload)** and **Apply tags to VRChat** buttons. Applying requires confirmation.
+- Bulk and individual tag edits use VRChat's update-avatar endpoint.
+- A save is counted as successful only when the API's returned Avatar confirms the requested tags; mismatched, missing, or rejected responses are reported as failures rather than successes.
+- Resume history cannot silently skip an avatar if its tags currently differ.
+- Custom tags are normalized to the `author_tag_` namespace. Warning tags use their own checkboxes.
+- Completion dialogs distinguish preview-only plans from confirmed VRChat updates.
+- Bulk writes are deliberately paced to follow the unofficial API rate guidance.
 
-## Install
-- On **Mac Apple Silicon or Intel**, download the matching DMG, drag the app to Applications, and reopen the new copy (quit the previous app first).
-- On **Windows**, use the branded Setup EXE or portable ZIP.
-- Downloads: https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest
+## Improved desktop layout
+- Drag-to-resize Avatar Library and Tag Studio panels.
+- More compact, laptop-friendly margins, stat cards and sidebar.
+- No content warning selected by default: choose the labels appropriate to your avatars.
+- Custom Mac drag-to-Applications DMGs and Windows setup wizard remain available.
 
-## If certificate verification still fails
-The server's presented certificate chain may be untrusted *by macOS itself* (e.g., HTTPS interception). Test on a trusted network, check the system date/time, inspect security/VPN software, and ask the administrator of a managed network for help. **Do not bypass certificate verification or install unknown certificates.**
+## Testing
+Mocked offline tests cover actual writes, preview-only behavior, API tag mismatch, interrupted resumes, custom tags, and single-avatar edits. No live VRChat account was accessed during automated tests.
+
+Download: https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest
 
 Created by **Ksyusha (Ксюша)** · https://guns.lol/life999
 
-*Unofficial community project, not affiliated with VRChat.*
+VRChat Avatar Tagger is an unofficial community project; VRChat's API can change without notice.

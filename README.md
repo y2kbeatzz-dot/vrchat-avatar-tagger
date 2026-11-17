@@ -45,6 +45,14 @@ VRChat Avatar Tagger is a Python project using the community `vrchatapi` client 
 
 **[🌐 Project website](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/)** · **[💜 Ksyusha's profiles](https://guns.lol/life999)** · **[📦 Releases](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases)**
 
+## v1.5.4 — Apply changes to VRChat
+
+The desktop app now makes the distinction obvious: **Preview changes (no upload)** shows what would change without saving anything, while **Apply tags to VRChat** sends the selected updates after a confirmation dialog. The app counts a save as successful only when VRChat returns the expected tags. Failed or unconfirmed saves are reported clearly in Activity.
+
+To apply: **select avatars → select the appropriate tags → click Apply tags to VRChat → confirm**. There is no longer a confusing preview-only checkbox to turn off.
+
+The Avatar Library and Tag Studio panels are now resizable by dragging the divider; margins and sidebar spacing are reduced for smaller Mac screens. Bulk API requests are deliberately spaced to respect VRChat's rate guidance.
+
 ## v1.5.2 — UI navigation polish
 
 The Qt desktop app adds **keyboard shortcuts** (⌘/Ctrl+F search, ⌘/Ctrl+R refresh, ⌘/Ctrl+1/2/3 navigation, F1 About), clearer tooltips and a status bar for tagging feedback. Branded Mac DMG installers, a Windows Setup wizard, and the portable Windows ZIP are available on the [GitHub Releases page](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest).

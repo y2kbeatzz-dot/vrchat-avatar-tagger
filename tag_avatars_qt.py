@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem, QAbstractItemView, QHeaderView, QCheckBox, QComboBox,
     QSpinBox, QProgressBar, QPlainTextEdit, QListWidget, QDialog,
     QDialogButtonBox, QInputDialog, QMessageBox, QScrollArea, QSizePolicy,
-    QStyledItemDelegate, QStyle
+    QStyledItemDelegate, QStyle, QSplitter
 )
 
 from app_paths import resource_file
@@ -30,7 +30,7 @@ REPO_URL = "https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger"
 WEBSITE_URL = "https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"
 CREATOR_NAME = "Ksyusha (Ксюша)"
 CREATOR_PROFILE_URL = "https://guns.lol/life999"
-VERSION = "1.5.3"
+VERSION = "1.5.4"
 
 
 def named_label(text, style="muted"):
@@ -281,27 +281,28 @@ class TagWorker(QThread):
             avatar_id = str(avatar.id)
             old = set(avatar.tags or [])
             new = old - self.tags if self.remove else old | self.tags
-            if self.resume and not self.preview and self.store.done(key, avatar_id):
-                counts["resumed"] += 1
-            elif new == old:
+            if new == old:
                 counts["unchanged"] += 1
-                if not self.preview:
-                    self.store.mark(key, avatar_id)
+                # Resume history must never skip an avatar whose tags now differ.
+                if self.resume and self.store.done(key, avatar_id):
+                    counts["resumed"] += 1
             elif self.preview:
                 counts["updated"] += 1
                 self.event.emit(f"PREVIEW  {avatar.name}: {'remove' if self.remove else 'add'} {', '.join(sorted(self.tags))}")
             else:
                 try:
-                    update_avatar_tags(self.api, avatar.id, new)
-                    avatar.tags = sorted(new)
-                    self.changed.emit(avatar_id, sorted(new))
+                    confirmed = update_avatar_tags(self.api, avatar.id, new)
+                    avatar.tags = confirmed
+                    self.changed.emit(avatar_id, confirmed)
                     self.store.mark(key, avatar_id)
                     counts["updated"] += 1
-                    self.event.emit(f"UPDATED  {avatar.name}")
+                    self.event.emit(f"CONFIRMED BY VRCHAT  {avatar.name}")
                 except Exception as exc:
                     counts["failed"] += 1
                     self.event.emit(f"FAILED  {avatar.name}: {type(exc).__name__}: {exc}")
-                time.sleep(REQUEST_DELAY)
+                if index < total and not self.cancelled.is_set():
+                    self.event.emit("Pausing between writes to respect VRChat's request limits…")
+                    self.cancelled.wait(REQUEST_DELAY)
             self.progress.emit(index, total)
         self.complete.emit(counts)
 
@@ -316,8 +317,8 @@ class SingleEditWorker(QThread):
 
     def run(self):
         try:
-            update_avatar_tags(self.api, self.avatar_id, self.tags)
-            self.success.emit(str(self.avatar_id), self.tags)
+            confirmed = update_avatar_tags(self.api, self.avatar_id, self.tags)
+            self.success.emit(str(self.avatar_id), confirmed)
         except Exception as exc:
             self.error.emit(f"{type(exc).__name__}: {exc}")
 
@@ -353,7 +354,11 @@ class TagDialog(QDialog):
         root.addWidget(controls)
 
     def add(self):
-        tag = normalize_tag(self.input.text())
+        try:
+            tag = normalize_tag(self.input.text())
+        except ValueError as exc:
+            QMessageBox.information(self, "Choose a content warning checkbox", str(exc))
+            return
         if tag and not self.items.findItems(tag, Qt.MatchExactly):
             self.items.addItem(tag)
         self.input.clear()
@@ -371,7 +376,7 @@ class TaggerApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("VRChat Avatar Tagger")
         self.resize(1260, 820)
-        self.setMinimumSize(1050, 680)
+        self.setMinimumSize(890, 620)
         self.setWindowIcon(QIcon(resource_file("app-icon.png")))
         self.setStyleSheet(skin())
         self.api = None
@@ -508,7 +513,7 @@ class TaggerApp(QMainWindow):
         root.setContentsMargins(0, 0, 0, 0)
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(230)
+        sidebar.setFixedWidth(200)
         side = QVBoxLayout(sidebar)
         side.setContentsMargins(18, 25, 18, 22)
         side.setSpacing(13)
@@ -550,8 +555,8 @@ class TaggerApp(QMainWindow):
     def _make_avatars_page(self):
         page = QWidget()
         all_layout = QVBoxLayout(page)
-        all_layout.setContentsMargins(25, 25, 25, 25)
-        all_layout.setSpacing(17)
+        all_layout.setContentsMargins(18, 16, 18, 14)
+        all_layout.setSpacing(11)
         header = QHBoxLayout()
         title_col = QVBoxLayout()
         title_col.addWidget(named_label("YOUR COLLECTION", "eyebrow"))
@@ -563,7 +568,7 @@ class TaggerApp(QMainWindow):
         header.addWidget(self.refresh_btn)
         all_layout.addLayout(header)
         hero = QHBoxLayout()
-        hero.setContentsMargins(19, 16, 19, 16)
+        hero.setContentsMargins(14, 9, 14, 9)
         hero_col = QVBoxLayout()
         hero_col.setSpacing(5)
         hero_col.addWidget(named_label("CREATOR CONTROL CENTER", "eyebrow"))
@@ -580,14 +585,16 @@ class TaggerApp(QMainWindow):
         )
         for label, value in (("AVATARS", self.total_stat), ("SELECTED", self.selected_stat), ("WITH WARNINGS", self.tagged_stat)):
             cell = QVBoxLayout()
-            cell.setContentsMargins(17, 13, 17, 13)
+            cell.setContentsMargins(12, 9, 12, 9)
             cell.setSpacing(4)
             cell.addWidget(named_label(label, "eyebrow"))
             cell.addWidget(value)
             stats.addWidget(layout_panel(cell, "stat"), 1)
         all_layout.addLayout(stats)
-        actions_layout = QHBoxLayout()
-        actions_layout.setSpacing(16)
+        actions_layout = QSplitter(Qt.Horizontal)
+        actions_layout.setChildrenCollapsible(False)
+        actions_layout.setHandleWidth(8)
+        actions_layout.setOpaqueResize(False)
         left = QVBoxLayout()
         left.setContentsMargins(19, 18, 19, 18)
         left.setSpacing(11)
@@ -629,7 +636,9 @@ class TaggerApp(QMainWindow):
         left.addWidget(self.library, 1)
         self.library_hint = named_label("Sign in to load your avatars.")
         left.addWidget(self.library_hint)
-        actions_layout.addWidget(layout_panel(left), 5)
+        library_panel = layout_panel(left)
+        library_panel.setMinimumWidth(320)
+        actions_layout.addWidget(library_panel)
         right = QVBoxLayout()
         right.setContentsMargins(18, 17, 18, 17)
         right.setSpacing(9)
@@ -643,7 +652,7 @@ class TaggerApp(QMainWindow):
         self.tag_checks = {}
         for label, value in CONTENT_TAGS:
             check = QCheckBox(label)
-            check.setChecked(value == "content_sex")
+            check.setChecked(False)
             self.tag_checks[value] = check
             right.addWidget(check)
         right.addSpacing(4)
@@ -660,10 +669,8 @@ class TaggerApp(QMainWindow):
         right.addWidget(self.custom_view)
         right.addWidget(button("Clear custom tags", callback=self.clear_custom))
         right.addSpacing(6)
-        self.dry = QCheckBox("Dry run · preview changes only")
-        self.dry.setChecked(True)
-        right.addWidget(self.dry)
-        self.resume = QCheckBox("Resume previous operation")
+        right.addWidget(named_label("Preview never uploads. Apply asks for confirmation and sends to VRChat.", "hint"))
+        self.resume = QCheckBox("Use saved resume history")
         self.resume.setChecked(True)
         right.addWidget(self.resume)
         limit_row = QHBoxLayout()
@@ -673,9 +680,12 @@ class TaggerApp(QMainWindow):
         self.limit.setValue(0)
         limit_row.addWidget(self.limit)
         right.addLayout(limit_row)
-        self.run_btn = button("Preview changes  →", "primary", self.start_bulk)
+        self.preview_btn = button("Preview changes (no upload)", callback=lambda: self.start_bulk(preview=True))
+        self.preview_btn.setToolTip("Shows pending changes locally. Does not contact VRChat to update tags.")
+        right.addWidget(self.preview_btn)
+        self.run_btn = button("Apply tags to VRChat  →", "primary", callback=lambda: self.start_bulk(preview=False))
+        self.run_btn.setToolTip("Apply selected tags to VRChat after explicit confirmation.")
         right.addWidget(self.run_btn)
-        self.dry.toggled.connect(lambda value: self.run_btn.setText("Preview changes  →" if value else "Apply selected changes  →"))
         right.addWidget(button("Edit one avatar's tags", callback=self.edit_selected))
         right.addStretch()
         # Keep the tag studio accessible on smaller notebook displays.
@@ -684,8 +694,12 @@ class TaggerApp(QMainWindow):
         studio_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         studio_scroll.setMinimumWidth(285)
         studio_scroll.setWidget(layout_panel(right))
-        actions_layout.addWidget(studio_scroll, 2)
-        all_layout.addLayout(actions_layout, 1)
+        actions_layout.addWidget(studio_scroll)
+        actions_layout.setStretchFactor(0, 5)
+        actions_layout.setStretchFactor(1, 3)
+        actions_layout.setSizes([640, 330])
+        self.workspace_splitter = actions_layout
+        all_layout.addWidget(actions_layout, 1)
         footer = QHBoxLayout()
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
@@ -954,7 +968,11 @@ class TaggerApp(QMainWindow):
         self.selected_stat.setText("0")
 
     def add_custom(self):
-        tag = normalize_tag(self.custom_input.text())
+        try:
+            tag = normalize_tag(self.custom_input.text())
+        except ValueError as exc:
+            QMessageBox.information(self, "Custom tags", str(exc))
+            return
         if tag and tag not in self.custom_tags:
             self.custom_tags.append(tag)
         self.custom_input.clear()
@@ -967,7 +985,7 @@ class TaggerApp(QMainWindow):
     def tags_to_use(self):
         return set(self.custom_tags) | {value for value, box in self.tag_checks.items() if box.isChecked()}
 
-    def start_bulk(self):
+    def start_bulk(self, preview=False):
         if self.running:
             return
         selected = [a for a in self.avatars if str(a.id) in self.selected_avatar_ids]
@@ -978,19 +996,22 @@ class TaggerApp(QMainWindow):
         if not tags:
             QMessageBox.information(self, "No tags selected", "Choose a warning tag or add a custom tag.")
             return
-        preview = self.dry.isChecked()
+        preview = bool(preview)
         remove = self.mode.currentIndex() == 1
         if not preview:
             description = "REMOVE" if remove else "ADD"
             approved = QMessageBox.question(
                 self, "Confirm avatar updates",
                 f"{description} {len(tags)} tag(s) across {len(selected)} selected avatar(s)?\n\n"
-                "This changes your VRChat account. Unrelated tags will be preserved.",
+                f"Tags: {', '.join(sorted(tags))}\n\n"
+                "Click Yes to send these changes to VRChat. "
+                "Existing unrelated tags will be preserved.",
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if approved != QMessageBox.Yes:
                 return
         self.running = True
         self.run_btn.setEnabled(False)
+        self.preview_btn.setEnabled(False)
         self.refresh_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.progress.setRange(0, len(selected))
@@ -1031,19 +1052,34 @@ class TaggerApp(QMainWindow):
     def bulk_complete(self, counts, preview):
         self.running = False
         self.run_btn.setEnabled(True)
+        self.preview_btn.setEnabled(True)
         self.refresh_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.tagged_stat.setText(str(sum(bool(set(a.tags or []) & {v for _, v in CONTENT_TAGS}) for a in self.avatars)))
         self.render_avatars()
-        self._event(("Preview finished" if preview else "Update finished") +
-                    f" · changed: {counts['updated']}, unchanged: {counts['unchanged']}, " +
-                    f"resumed: {counts['resumed']}, failed: {counts['failed']}")
-        self.progress_label.setText("Preview done" if preview else "Done")
+        action = "PREVIEW ONLY · NO CHANGES SENT" if preview else "APPLIED · CONFIRMED BY VRCHAT"
+        self._event(
+            f"{action} · {'would change' if preview else 'saved'}: {counts['updated']}, "
+            f"unchanged: {counts['unchanged']}, failed: {counts['failed']}"
+        )
+        self.progress_label.setText("Preview only · Nothing sent" if preview else "VRChat updates finished")
         self.statusBar().showMessage(
-            f"Completed · {counts['updated']} affected · {counts['failed']} failed"
+            f"{'Preview only' if preview else 'VRChat confirmed'} · "
+            f"{counts['updated']} avatar(s) · {counts['failed']} failed"
         )
         self.activity_status.setText(
-            f"{'Preview' if preview else 'Update'} complete · {counts['updated']} changes, {counts['failed']} errors"
+            f"{'Preview only' if preview else 'Applied & confirmed'} · "
+            f"{counts['updated']} changed · {counts['failed']} failed"
+        )
+        message = (
+            f"{counts['updated']} avatar(s) would change. No changes were sent to VRChat."
+            if preview else
+            f"VRChat confirmed {counts['updated']} avatar update(s). "
+            f"{counts['unchanged']} already matched. {counts['failed']} failed. "
+            "Review Activity for details."
+        )
+        QMessageBox.information(
+            self, "Preview complete" if preview else "VRChat update results", message
         )
 
     def edit_selected(self):
@@ -1073,11 +1109,13 @@ class TaggerApp(QMainWindow):
             self._event(f"Saved tags for {avatar.name}.")
             self.running = False
             self.run_btn.setEnabled(True)
+            self.preview_btn.setEnabled(True)
             self.refresh_btn.setEnabled(True)
             self.render_avatars()
         def failed(message):
             self.running = False
             self.run_btn.setEnabled(True)
+            self.preview_btn.setEnabled(True)
             self.refresh_btn.setEnabled(True)
             self._event("ERROR  Single-avatar update failed: " + message)
             QMessageBox.warning(self, "Save failed", message)

@@ -68,7 +68,9 @@ def friendly_login_error(exc):
 DATA_DIR = Path(data_directory())
 COOKIE_FILE = DATA_DIR / "vrchat_session.cookies"
 PROGRESS_FILE = DATA_DIR / "tagger_progress.json"
-REQUEST_DELAY = 1.2
+# Keep bulk writes well-spaced to respect VRChat's unofficial API guidance.
+# One successful update is one request; verify using its returned Avatar.
+REQUEST_DELAY = 60.0
 
 CONTENT_TAGS = [
     ("Sexually Suggestive", "content_sex"),
@@ -80,7 +82,16 @@ CONTENT_TAGS = [
 
 
 def normalize_tag(value):
-    return value.strip().lower().replace(" ", "_")
+    """Normalize an avatar *custom* tag to VRChat's author_tag_ namespace."""
+    normalized = value.strip().lower().replace(" ", "_")
+    if not normalized:
+        return ""
+    if normalized.startswith("author_tag_"):
+        return normalized
+    # Content-warning tags are managed by their own UI controls.
+    if normalized.startswith("content_"):
+        raise ValueError("Choose content warnings using the warning checkboxes.")
+    return "author_tag_" + normalized
 
 
 def operation_key(tags, remove):
@@ -201,10 +212,32 @@ def fetch_owned_avatars(api, stopped=lambda: False):
 
 
 def update_avatar_tags(api, avatar_id, tags):
-    # Passing explicit None avoids the SDK mistakenly injecting asset versions.
-    api.update_avatar(
+    """Apply tags and require confirmation in VRChat's returned Avatar object.
+
+    The SDK's PUT /avatars/{id} returns the saved Avatar. Do not mark a
+    write complete if the server errors, omits tags, or returns a different
+    tag list. No second API request is needed in the normal case.
+    """
+    requested = sorted(set(tags))
+    response = api.update_avatar(
         avatar_id,
         update_avatar_request=UpdateAvatarRequest(
-            tags=sorted(tags), unity_version=None, version=None
+            tags=requested, unity_version=None, version=None
         ),
     )
+    returned = getattr(response, "tags", None)
+    if returned is None:
+        raise RuntimeError(
+            "VRChat did not return tags to confirm this update. "
+            "Refresh avatars and check the actual tags before retrying."
+        )
+    actual = sorted(set(returned))
+    if actual != requested:
+        missing = sorted(set(requested) - set(actual))
+        extra = sorted(set(actual) - set(requested))
+        raise RuntimeError(
+            "VRChat returned different tags than requested. "
+            f"Missing: {missing or 'none'}; unexpected: {extra or 'none'}. "
+            "Refresh the avatar list before retrying."
+        )
+    return actual
