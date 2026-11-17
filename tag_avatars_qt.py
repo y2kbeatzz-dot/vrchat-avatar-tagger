@@ -951,8 +951,11 @@ class TaggerApp(QMainWindow):
         self.statusBar().showMessage(
             f"Loaded {total} avatars · You can browse while more load"
         )
-        if not self._avatar_render_timer.isActive():
-            self._avatar_render_timer.start()
+        # Render the first page immediately; consolidate later page redraws.
+        # Repainting thousands of table cells for every 100 avatars felt janky.
+        if total <= 100 or total % 500 == 0:
+            if not self._avatar_render_timer.isActive():
+                self._avatar_render_timer.start()
 
     def avatars_loaded(self, avatars):
         if self._closing_requested:
@@ -1004,24 +1007,28 @@ class TaggerApp(QMainWindow):
             return True
         self.filtered = [avatar for avatar in self.avatars if matches(avatar)]
         self.library.blockSignals(True)
-        self.library.setRowCount(len(self.filtered))
-        for row, avatar in enumerate(self.filtered):
-            tags = list(avatar.tags or [])
-            for col, value in enumerate((str(avatar.name or "Unnamed avatar"),
-                                         ", ".join(tags[:4]) + ("  +" + str(len(tags)-4) if len(tags)>4 else "") if tags else "No tags",
-                                         str(avatar.id))):
-                item = QTableWidgetItem(value)
-                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-                if col == 1:
-                    item.setData(Qt.UserRole, tags)
-                self.library.setItem(row, col, item)
-            self.library.setRowHeight(row, 62)
-            if str(avatar.id) in self.selected_avatar_ids:
-                index = self.library.model().index(row, 0)
-                self.library.selectionModel().select(
-                    index, QItemSelectionModel.Select | QItemSelectionModel.Rows
-                )
-        self.library.blockSignals(False)
+        self.library.setUpdatesEnabled(False)
+        try:
+            self.library.setRowCount(len(self.filtered))
+            for row, avatar in enumerate(self.filtered):
+                tags = list(avatar.tags or [])
+                for col, value in enumerate((str(avatar.name or "Unnamed avatar"),
+                                             ", ".join(tags[:4]) + ("  +" + str(len(tags)-4) if len(tags)>4 else "") if tags else "No tags",
+                                             str(avatar.id))):
+                    item = QTableWidgetItem(value)
+                    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                    if col == 1:
+                        item.setData(Qt.UserRole, tags)
+                    self.library.setItem(row, col, item)
+                self.library.setRowHeight(row, 62)
+                if str(avatar.id) in self.selected_avatar_ids:
+                    index = self.library.model().index(row, 0)
+                    self.library.selectionModel().select(
+                        index, QItemSelectionModel.Select | QItemSelectionModel.Rows
+                    )
+        finally:
+            self.library.setUpdatesEnabled(True)
+            self.library.blockSignals(False)
         self.library_hint.setText(f"Showing {len(self.filtered)} of {len(self.avatars)} avatars · Double-click to edit tags")
         self.selected_stat.setText(str(len(self.selected_avatar_ids)))
 
