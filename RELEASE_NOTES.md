@@ -1,17 +1,23 @@
-## VRChat Avatar Tagger v1.4.0
+# VRChat Avatar Tagger v1.4.1
 
-### New
-- macOS Apple Silicon and Intel desktop app installers (DMG).
-- Windows desktop ZIP built automatically alongside macOS releases.
-- Cross-platform app paths: Mac session, progress and logs stored in ~/Library/Application Support/VRChat Avatar Tagger.
-- Improved packaged image/resource loading and macOS-appropriate fonts.
-- A refreshed download website powered by GitHub Pages.
-- CLI and graphical interface retain existing avatar tagging, editing, previews and resume behavior.
+## What's new
+- **Custom neon avatar-tag application icon** in macOS Dock, Finder and DMG builds, plus Windows EXE and taskbar.
+- App-specific icons generated reproducibly in `scripts/build_icons.py` as PNG, ICNS and ICO.
+- A refreshed README with a **clickable banner and app icon linking to the official website**, clear website/download buttons, and desktop release status badge.
+- GitHub Pages favicon and branding use the matching vector icon.
+- Automated GitHub Releases publish and validate **three desktop downloads**: Apple Silicon DMG, Intel DMG, Windows ZIP.
 
-### Install
-On macOS download the DMG for your processor, open it and drag the app to Applications. This unsigned community build is not Apple notarized; macOS may require using System Settings > Privacy & Security > Open Anyway after the first launch. Only do so if you trust this repository and downloaded artifact.
+## Download
+Choose the download for your device on the official website: https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/
 
-On Windows download the ZIP, extract it and launch the included desktop app.
+Or go directly to: https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest
 
-### Important
-This is an unofficial community tool, not affiliated with VRChat. Changes to avatar tags require a VRChat account and network access. Preview changes with Dry run first. The tool never uploads your account cookies anywhere except to VRChat's own API during authenticated requests.
+## Installation
+**macOS:** Open the DMG and drag VRChat Avatar Tagger.app into /Applications. Apple Silicon and Intel versions are separate. The builds are unsigned and not notarized; if macOS blocks launch, use System Settings → Privacy & Security → Open Anyway only if you trust the downloaded app.
+
+**Windows:** Extract the ZIP and launch the included executable.
+
+## Existing features preserved
+Login and 2FA, content-warning tags, custom tags, per-avatar edits, search/selection, dry-run previews, and resume progress.
+
+*Unofficial community project; not affiliated with VRChat.*
