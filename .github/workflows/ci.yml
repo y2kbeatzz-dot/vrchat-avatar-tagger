@@ -1,0 +1,48 @@
+name: Validate desktop app
+
+on:
+  pull_request:
+    paths:
+      - "tag_avatars_qt.py"
+      - "tagger_core.py"
+      - "tag_avatars_gui.py"
+      - "requirements.txt"
+      - "scripts/build_icons.py"
+      - "scripts/build_installer_art.py"
+      - "installer/windows.iss"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tag_avatars_qt.py"
+      - "tagger_core.py"
+      - "requirements.txt"
+
+jobs:
+  test:
+    name: Desktop smoke test ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15, windows-latest]
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt Pillow
+      - name: Syntax and import test
+        run: python -m compileall -q tag_avatars_qt.py tagger_core.py tag_avatars_gui.py tag_avatars.py scripts
+      - name: Test generated installer images
+        run: |
+          python scripts/build_icons.py
+          python scripts/build_installer_art.py
+      - name: Headless Qt application smoke test
+        run: |
+          python -c "from PySide6.QtWidgets import QApplication; from tag_avatars_qt import TaggerApp; a = QApplication([]); w = TaggerApp(); assert w.stack.count() == 2; assert w.pages.count() == 3; assert not w.running; w.close(); print('Qt desktop smoke test passed')"
