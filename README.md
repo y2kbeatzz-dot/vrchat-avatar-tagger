@@ -45,6 +45,19 @@ VRChat Avatar Tagger is a Python project using the community `vrchatapi` client 
 
 **[🌐 Project website](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/)** · **[💜 Ksyusha's profiles](https://guns.lol/life999)** · **[📦 Releases](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases)**
 
+## v1.5.1 — A more polished, easier-to-use UI
+
+This update improves the desktop app itself (not just the downloads):
+
+- **Avatars look like avatars:** monogram thumbnails, readable color-coded tag chips, better spacing and selection highlighting.
+- **Better sign-in experience:** branded two-column welcome screen with clear login fields.
+- **Quick filters:** All avatars, With content warnings, Without content warnings, Has any tags, and Untagged.
+- **More accessible controls:** the Tag Studio scrolls on smaller laptop screens.
+- **Live progress in Activity:** follow the update and return to the avatar workspace without losing your selection.
+- **Light and dark themes:** improved contrast, buttons, and readable selection states.
+
+The **custom macOS DMG** (with branded drag-to-Applications artwork) and the **Windows setup wizard** (with install path, shortcuts and uninstaller) remain the recommended installers.
+
 ## New in v1.5: redesigned desktop interface
 
 The desktop application has been rebuilt with **Qt (PySide6)** instead of the classic Tkinter look. It now includes a modern responsive desktop layout with **dark/light themes**, sidebar navigation, searchable avatar table, selection statistics, a dedicated **Tag Studio**, interactive progress, and an activity history view. Bulk updates, content warning/custom tags, individual avatar edits, 2FA, dry runs, stop, and resume still work.
