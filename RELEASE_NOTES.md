@@ -1,5 +1,10 @@
 # VRChat Avatar Tagger v1.5.0 — New UI + Custom Installers
 
+## Creator & project story
+- New About the Creator screen, introducing **Ksyusha (Ксюша)** and the project's purpose, tools, and development approach.
+- The README and website now include an About section and a direct link to the creator's [profiles](https://guns.lol/life999).
+- The Windows installer identifies Ksyusha as the app publisher.
+
 ## Redesigned desktop app
 - Rebuilt the desktop interface with **Qt/PySide6** for a modern macOS and Windows experience.
 - Sidebar navigation for Avatars, Activity, and About.
