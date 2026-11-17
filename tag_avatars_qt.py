@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem, QAbstractItemView, QHeaderView, QCheckBox, QComboBox,
     QSpinBox, QProgressBar, QPlainTextEdit, QListWidget, QDialog,
     QDialogButtonBox, QInputDialog, QMessageBox, QScrollArea, QSizePolicy,
-    QStyledItemDelegate, QStyle
+    QStyledItemDelegate, QStyle, QSplitter
 )
 
 from app_paths import resource_file
@@ -30,7 +30,7 @@ REPO_URL = "https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger"
 WEBSITE_URL = "https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"
 CREATOR_NAME = "Ksyusha (Ксюша)"
 CREATOR_PROFILE_URL = "https://guns.lol/life999"
-VERSION = "1.5.3"
+VERSION = "1.5.4"
 
 
 def named_label(text, style="muted"):
@@ -281,27 +281,28 @@ class TagWorker(QThread):
             avatar_id = str(avatar.id)
             old = set(avatar.tags or [])
             new = old - self.tags if self.remove else old | self.tags
-            if self.resume and not self.preview and self.store.done(key, avatar_id):
-                counts["resumed"] += 1
-            elif new == old:
+            if new == old:
                 counts["unchanged"] += 1
-                if not self.preview:
-                    self.store.mark(key, avatar_id)
+                # Resume history must never skip an avatar whose tags now differ.
+                if self.resume and self.store.done(key, avatar_id):
+                    counts["resumed"] += 1
             elif self.preview:
                 counts["updated"] += 1
                 self.event.emit(f"PREVIEW  {avatar.name}: {'remove' if self.remove else 'add'} {', '.join(sorted(self.tags))}")
             else:
                 try:
-                    update_avatar_tags(self.api, avatar.id, new)
-                    avatar.tags = sorted(new)
-                    self.changed.emit(avatar_id, sorted(new))
+                    confirmed = update_avatar_tags(self.api, avatar.id, new)
+                    avatar.tags = confirmed
+                    self.changed.emit(avatar_id, confirmed)
                     self.store.mark(key, avatar_id)
                     counts["updated"] += 1
-                    self.event.emit(f"UPDATED  {avatar.name}")
+                    self.event.emit(f"CONFIRMED BY VRCHAT  {avatar.name}")
                 except Exception as exc:
                     counts["failed"] += 1
                     self.event.emit(f"FAILED  {avatar.name}: {type(exc).__name__}: {exc}")
-                time.sleep(REQUEST_DELAY)
+                if index < total and not self.cancelled.is_set():
+                    self.event.emit("Pausing between writes to respect VRChat's request limits…")
+                    self.cancelled.wait(REQUEST_DELAY)
             self.progress.emit(index, total)
         self.complete.emit(counts)
 
@@ -316,8 +317,8 @@ class SingleEditWorker(QThread):
 
     def run(self):
         try:
-            update_avatar_tags(self.api, self.avatar_id, self.tags)
-            self.success.emit(str(self.avatar_id), self.tags)
+            confirmed = update_avatar_tags(self.api, self.avatar_id, self.tags)
+            self.success.emit(str(self.avatar_id), confirmed)
         except Exception as exc:
             self.error.emit(f"{type(exc).__name__}: {exc}")
 
@@ -353,7 +354,11 @@ class TagDialog(QDialog):
         root.addWidget(controls)
 
     def add(self):
-        tag = normalize_tag(self.input.text())
+        try:
+            tag = normalize_tag(self.input.text())
+        except ValueError as exc:
+            QMessageBox.information(self, "Choose a content warning checkbox", str(exc))
+            return
         if tag and not self.items.findItems(tag, Qt.MatchExactly):
             self.items.addItem(tag)
         self.input.clear()
@@ -954,7 +959,11 @@ class TaggerApp(QMainWindow):
         self.selected_stat.setText("0")
 
     def add_custom(self):
-        tag = normalize_tag(self.custom_input.text())
+        try:
+            tag = normalize_tag(self.custom_input.text())
+        except ValueError as exc:
+            QMessageBox.information(self, "Custom tags", str(exc))
+            return
         if tag and tag not in self.custom_tags:
             self.custom_tags.append(tag)
         self.custom_input.clear()
