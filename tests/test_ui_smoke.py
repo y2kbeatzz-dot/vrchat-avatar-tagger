@@ -4,6 +4,10 @@ Does not log in, contact VRChat, or change any avatar.
 Run with QT_QPA_PLATFORM=offscreen python tests/test_ui_smoke.py
 """
 from types import SimpleNamespace
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from PySide6.QtWidgets import QApplication
 from tag_avatars_qt import TaggerApp
