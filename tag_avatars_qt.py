@@ -404,7 +404,30 @@ class TaggerApp(QMainWindow):
         outer.setContentsMargins(30, 24, 30, 24)
         outer.addStretch()
         center = QHBoxLayout()
-        center.addStretch()
+        center.setSpacing(26)
+        welcome = QVBoxLayout()
+        welcome.setContentsMargins(35, 38, 35, 38)
+        welcome.setSpacing(19)
+        welcome.addWidget(named_label("DESIGNED BY KSYUSHA (КСЮША)", "eyebrow"))
+        welcome.addSpacing(15)
+        welcome.addWidget(named_label("YOUR AVATARS.\\nYOUR RULES.", "heroTitle"))
+        welcome.addWidget(named_label(
+            "A better way to organize your VRChat collection. "
+            "Search every avatar, build tag sets, preview edits, and apply changes with confidence.",
+            "heroHint"
+        ))
+        welcome.addSpacing(16)
+        for item in (
+            "✦  Manage content warnings in bulk",
+            "◈  Find avatars without the endless scrolling",
+            "◎  Preview before anything changes",
+            "↺  Resume long sessions right where you left off",
+        ):
+            welcome.addWidget(named_label(item, "sectionTitle"))
+        welcome.addStretch()
+        welcome.addWidget(named_label("VRCHAT AVATAR TAGGER  •  V" + VERSION, "eyebrow"))
+        welcome_panel = layout_panel(welcome, "heroPanel")
+        center.addWidget(welcome_panel, 1)
         body = QVBoxLayout()
         body.setContentsMargins(38, 34, 38, 34)
         body.setSpacing(16)
@@ -428,9 +451,9 @@ class TaggerApp(QMainWindow):
         self.password.setPlaceholderText("VRChat password")
         self.password.returnPressed.connect(self.login)
         body.addWidget(self.password)
-        self.login_btn = button("Sign in to VRChat  →", "primary", self.login)
+        self.login_btn = button("Continue to your avatars  →", "primary", self.login)
         body.addWidget(self.login_btn)
-        self.login_status = named_label("Connect securely using your VRChat credentials.", "hint")
+        self.login_status = named_label("No account password is saved by the app.", "hint")
         self.login_status.setAlignment(Qt.AlignCenter)
         body.addWidget(self.login_status)
         body.addSpacing(8)
@@ -439,7 +462,6 @@ class TaggerApp(QMainWindow):
         login_panel = layout_panel(body, "loginPanel")
         login_panel.setFixedWidth(460)
         center.addWidget(login_panel)
-        center.addStretch()
         outer.addLayout(center)
         outer.addStretch()
         self.stack.addWidget(page)
@@ -504,6 +526,18 @@ class TaggerApp(QMainWindow):
         self.refresh_btn = button("↻  Refresh avatars", callback=self.refresh)
         header.addWidget(self.refresh_btn)
         all_layout.addLayout(header)
+        hero = QHBoxLayout()
+        hero.setContentsMargins(19, 16, 19, 16)
+        hero_col = QVBoxLayout()
+        hero_col.setSpacing(5)
+        hero_col.addWidget(named_label("CREATOR CONTROL CENTER", "eyebrow"))
+        hero_col.addWidget(named_label("Every avatar. One organized workspace.", "sectionTitle"))
+        hero_col.addWidget(named_label("Pick your collection, choose tags, preview your changes."))
+        hero.addLayout(hero_col, 1)
+        self.mode_pill = named_label("●  PREVIEW-FIRST WORKFLOW", "pill")
+        hero.addWidget(self.mode_pill, 0, Qt.AlignVCenter)
+        all_layout.addWidget(layout_panel(hero, "heroPanel"))
+
         stats = QHBoxLayout()
         self.total_stat, self.selected_stat, self.tagged_stat = (
             named_label("0", "statValue"), named_label("0", "statValue"), named_label("0", "statValue")
@@ -530,6 +564,15 @@ class TaggerApp(QMainWindow):
         search.addWidget(button("Select visible", callback=self.select_visible))
         search.addWidget(button("Clear", callback=self.clear_selection))
         left.addLayout(search)
+        filters = QHBoxLayout()
+        filters.setSpacing(8)
+        self.filter_mode = QComboBox()
+        self.filter_mode.addItems(["All avatars", "With content warnings", "Without content warnings", "Has any tags", "Untagged"])
+        self.filter_mode.currentIndexChanged.connect(self.render_avatars)
+        filters.addWidget(named_label("SHOW", "eyebrow"))
+        filters.addWidget(self.filter_mode, 1)
+        filters.addStretch(1)
+        left.addLayout(filters)
         self.library = QTableWidget(0, 3)
         self.library.setHorizontalHeaderLabels(["AVATAR NAME", "TAGS", "AVATAR ID"])
         self.library.setItemDelegate(AvatarRowDelegate(self.library))
@@ -593,9 +636,9 @@ class TaggerApp(QMainWindow):
         self.limit.setValue(0)
         limit_row.addWidget(self.limit)
         right.addLayout(limit_row)
-        self.run_btn = button("Preview selected avatars →", "primary", self.start_bulk)
+        self.run_btn = button("Preview changes  →", "primary", self.start_bulk)
         right.addWidget(self.run_btn)
-        self.dry.toggled.connect(lambda value: self.run_btn.setText("Preview selected avatars →" if value else "Apply tags to selected →"))
+        self.dry.toggled.connect(lambda value: self.run_btn.setText("Preview changes  →" if value else "Apply selected changes  →"))
         right.addWidget(button("Edit one avatar's tags", callback=self.edit_selected))
         right.addStretch()
         actions_layout.addWidget(layout_panel(right), 2)
@@ -752,6 +795,7 @@ class TaggerApp(QMainWindow):
         self.login_status.setText("Connected successfully.")
         self.stack.setCurrentIndex(1)
         self.side_status.setText("●  " + display_name)
+        self._event("Welcome back to your avatar workspace.")
         self._event("Signed in as " + display_name)
         self.refresh()
 
@@ -789,9 +833,19 @@ class TaggerApp(QMainWindow):
         if not hasattr(self, "library"):
             return
         needle = self.search.text().strip().lower()
-        self.filtered = [a for a in self.avatars
-                         if needle in str(a.name or "").lower() or
-                         needle in " ".join(a.tags or []).lower()]
+        warning_values = {value for _, value in CONTENT_TAGS}
+        filter_index = self.filter_mode.currentIndex()
+        def matches(avatar):
+            tags = set(avatar.tags or [])
+            if needle and needle not in str(avatar.name or "").lower() and needle not in " ".join(tags).lower():
+                return False
+            has_warning = bool(tags & warning_values)
+            if filter_index == 1: return has_warning
+            if filter_index == 2: return not has_warning
+            if filter_index == 3: return bool(tags)
+            if filter_index == 4: return not tags
+            return True
+        self.filtered = [avatar for avatar in self.avatars if matches(avatar)]
         self.library.blockSignals(True)
         self.library.setRowCount(len(self.filtered))
         for row, avatar in enumerate(self.filtered):
