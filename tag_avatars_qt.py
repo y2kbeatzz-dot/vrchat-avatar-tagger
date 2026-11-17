@@ -27,6 +27,8 @@ from vrchatapi.api import avatars_api
 
 REPO_URL = "https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger"
 WEBSITE_URL = "https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"
+CREATOR_NAME = "Ksyusha (Ксюша)"
+CREATOR_PROFILE_URL = "https://guns.lol/life999"
 VERSION = "1.5.0"
 
 
@@ -537,22 +539,91 @@ class TaggerApp(QMainWindow):
 
     def _make_about_page(self):
         page = QWidget()
-        outer = QVBoxLayout(page)
-        outer.setContentsMargins(28, 28, 28, 28)
-        outer.setSpacing(18)
-        outer.addWidget(named_label("ABOUT THE PROJECT", "eyebrow"))
-        outer.addWidget(named_label("Designed for creators.", "pageTitle"))
-        msg = QVBoxLayout()
-        msg.setContentsMargins(25, 25, 25, 25)
-        msg.setSpacing(14)
-        msg.addWidget(named_label("VRChat Avatar Tagger · " + VERSION, "sectionTitle"))
-        msg.addWidget(named_label("Bulk manage the content-warning and custom tags on your own VRChat avatars. Fast selection, searchable lists, per-avatar editing, cautious previews and resumable operations."))
-        msg.addWidget(named_label("Local data: " + str(DATA_DIR)))
-        msg.addWidget(named_label("Unofficial community project. Not affiliated with VRChat. Always preview changes before applying them."))
-        msg.addWidget(button("Official website ↗", callback=lambda: QDesktopServices.openUrl(QUrl(WEBSITE_URL))))
-        msg.addWidget(button("GitHub repository ↗", callback=lambda: QDesktopServices.openUrl(QUrl(REPO_URL))))
-        outer.addWidget(layout_panel(msg))
-        outer.addStretch()
+        root = QVBoxLayout(page)
+        root.setContentsMargins(28, 28, 28, 28)
+        root.setSpacing(10)
+
+        root.addWidget(named_label("MEET THE CREATOR", "eyebrow"))
+        root.addWidget(named_label("Made by " + CREATOR_NAME, "pageTitle"))
+        root.addWidget(named_label(
+            "A small project built to make managing VRChat avatars easier, "
+            "without opening and editing each avatar one by one."
+        ))
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content = QWidget()
+        body = QVBoxLayout(content)
+        body.setContentsMargins(0, 16, 12, 14)
+        body.setSpacing(15)
+
+        story = QVBoxLayout()
+        story.setContentsMargins(22, 21, 22, 21)
+        story.setSpacing(12)
+        story.addWidget(named_label("THE STORY", "eyebrow"))
+        story.addWidget(named_label("Why I made Avatar Tagger", "sectionTitle"))
+        story.addWidget(named_label(
+            "Keeping a lot of VRChat avatars organized can get repetitive, especially "
+            "when the same content-warning tags need updating across multiple avatars. "
+            "Avatar Tagger was made to turn those repeated steps into one clear workflow: "
+            "find your avatars, choose tags, preview what will change, and apply the edits you want."
+        ))
+        story.addWidget(named_label(
+            "The goal is to save creators time while keeping control of each change. "
+            "That is why the app includes dry-run previews, individual avatar editing, "
+            "stop controls, and the ability to resume a longer session."
+        ))
+        body.addWidget(layout_panel(story, "heroPanel"))
+
+        build = QVBoxLayout()
+        build.setContentsMargins(22, 21, 22, 21)
+        build.setSpacing(11)
+        build.addWidget(named_label("BEHIND THE APP", "eyebrow"))
+        build.addWidget(named_label("How it was made", "sectionTitle"))
+        build.addWidget(named_label(
+            "Built in Python with the community VRChat API wrapper for account and "
+            "avatar management. The desktop interface uses Qt (PySide6), while "
+            "PyInstaller packages the Windows and macOS apps. GitHub Actions creates "
+            "the downloadable releases; macOS uses custom drag-to-Applications DMGs "
+            "and Windows uses a branded setup installer."
+        ))
+        build.addWidget(named_label(
+            "The project is free and open source, with features and design evolving "
+            "to make the app simpler to use."
+        ))
+        body.addWidget(layout_panel(build))
+
+        creator = QVBoxLayout()
+        creator.setContentsMargins(22, 21, 22, 21)
+        creator.setSpacing(10)
+        creator.addWidget(named_label("CONNECT", "eyebrow"))
+        creator.addWidget(named_label(CREATOR_NAME, "sectionTitle"))
+        creator.addWidget(named_label("Creator of VRChat Avatar Tagger"))
+        creator.addWidget(button(
+            "Visit my profiles ↗",
+            "primary",
+            lambda: QDesktopServices.openUrl(QUrl(CREATOR_PROFILE_URL))
+        ))
+        creator.addWidget(button(
+            "Project website ↗",
+            callback=lambda: QDesktopServices.openUrl(QUrl(WEBSITE_URL))
+        ))
+        creator.addWidget(button(
+            "Source code on GitHub ↗",
+            callback=lambda: QDesktopServices.openUrl(QUrl(REPO_URL))
+        ))
+        body.addWidget(layout_panel(creator))
+
+        note = named_label(
+            "VRChat Avatar Tagger v" + VERSION + " · Unofficial community project, "
+            "not affiliated with VRChat. Your VRChat session and resume data "
+            "are stored locally at " + str(DATA_DIR),
+            "hint"
+        )
+        body.addWidget(note)
+        body.addStretch()
+        scroll.setWidget(content)
+        root.addWidget(scroll, 1)
         self.pages.addWidget(page)
 
     def toggle_theme(self):
