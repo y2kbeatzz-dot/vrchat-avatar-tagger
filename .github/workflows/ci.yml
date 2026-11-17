@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "tag_avatars_qt.py"
+      - "tests/test_ui_smoke.py"
       - "tagger_core.py"
       - "tag_avatars_gui.py"
       - "requirements.txt"
@@ -49,5 +50,4 @@ jobs:
           python scripts/build_icons.py
           python scripts/build_installer_art.py
       - name: Headless Qt application smoke test
-        run: |
-          python -c "from PySide6.QtWidgets import QApplication; from tag_avatars_qt import TaggerApp; a = QApplication([]); w = TaggerApp(); assert w.stack.count() == 2; assert w.pages.count() == 3; assert not w.running; w.close(); print('Qt desktop smoke test passed')"
+        run: python tests/test_ui_smoke.py

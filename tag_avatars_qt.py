@@ -7,14 +7,15 @@ import sys
 import threading
 import time
 
-from PySide6.QtCore import Qt, QThread, Signal, QUrl, QItemSelectionModel
-from PySide6.QtGui import QIcon, QDesktopServices
+from PySide6.QtCore import Qt, QThread, Signal, QUrl, QItemSelectionModel, QSize
+from PySide6.QtGui import QIcon, QDesktopServices, QPainter, QColor, QFont
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QFrame, QLabel, QPushButton, QLineEdit,
     QVBoxLayout, QHBoxLayout, QGridLayout, QStackedWidget, QTableWidget,
     QTableWidgetItem, QAbstractItemView, QHeaderView, QCheckBox, QComboBox,
     QSpinBox, QProgressBar, QPlainTextEdit, QListWidget, QDialog,
-    QDialogButtonBox, QInputDialog, QMessageBox, QScrollArea, QSizePolicy
+    QDialogButtonBox, QInputDialog, QMessageBox, QScrollArea, QSizePolicy,
+    QStyledItemDelegate, QStyle
 )
 
 from app_paths import resource_file
@@ -29,7 +30,7 @@ REPO_URL = "https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger"
 WEBSITE_URL = "https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"
 CREATOR_NAME = "Ksyusha (Ксюша)"
 CREATOR_PROFILE_URL = "https://guns.lol/life999"
-VERSION = "1.5.0"
+VERSION = "1.5.1"
 
 
 def named_label(text, style="muted"):
@@ -75,7 +76,11 @@ def skin(light=False):
         QMainWindow, QStackedWidget, QScrollArea { background: %(bg)s; }
         QFrame#sidebar { background: %(sidebar)s; border-right: 1px solid %(border)s; }
         QFrame#panel, QFrame#stat, QFrame#loginPanel { background: %(panel)s; border: 1px solid %(border)s; border-radius: 17px; }
-        QFrame#heroPanel { background: %(selected)s; border: 1px solid %(border)s; border-radius: 17px; }
+        QFrame#heroPanel { background: %(selected)s; border: 1px solid %(border)s; border-radius: 20px; }
+        QFrame#glassCard { background: %(surface)s; border: 1px solid %(border)s; border-radius: 16px; }
+        QLabel#heroTitle { font-size: 38px; font-weight: 900; color: %(text)s; }
+        QLabel#heroHint { color: %(muted)s; font-size: 14px; }
+        QLabel#pill { color: %(accent)s; background: %(selected)s; border: 1px solid %(border)s; border-radius: 11px; padding: 7px 12px; font-weight: 750; }
         QLabel { background: transparent; }
         QLabel#title { font-size: 30px; font-weight: 800; }
         QLabel#pageTitle { font-size: 24px; font-weight: 800; }
@@ -89,7 +94,7 @@ def skin(light=False):
         QPushButton { background: %(surface)s; color: %(text)s; padding: 9px 14px; border: 1px solid %(border)s; border-radius: 10px; font-weight: 650; }
         QPushButton:hover { background: %(hover)s; border-color: %(accent)s; }
         QPushButton:disabled { color: %(muted)s; }
-        QPushButton#primary { background: #9664e9; color: white; border: 1px solid #b08af8; font-weight: 750; }
+        QPushButton#primary { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #9866ed,stop:1 #db74bc); color: white; border: 1px solid #ba93f7; font-weight: 800; }
         QPushButton#primary:hover { background: #ac80fa; }
         QPushButton#danger { color: %(warning)s; }
         QPushButton#nav { background: transparent; border: 0; text-align: left; padding: 13px 16px; font-size: 14px; }
@@ -100,8 +105,6 @@ def skin(light=False):
         QComboBox::drop-down { border: 0; width: 24px; }
         QComboBox QAbstractItemView { background: %(panel)s; selection-background-color: %(selected)s; border: 1px solid %(border)s; }
         QCheckBox { background: transparent; spacing: 8px; padding: 4px 0; }
-        QCheckBox::indicator { width: 17px; height: 17px; border: 1px solid %(muted)s; border-radius: 5px; background: %(surface)s; }
-        QCheckBox::indicator:checked { background: #9970ef; border-color: #9970ef; }
         QTableWidget { background: %(panel)s; alternate-background-color: %(surface)s; border: 0; gridline-color: transparent; selection-background-color: %(selected)s; selection-color: %(text)s; outline: none; }
         QTableWidget::item { padding: 7px; border-bottom: 1px solid %(border)s; }
         QHeaderView::section { background: %(surface)s; color: %(muted)s; border: 0; border-bottom: 1px solid %(border)s; padding: 12px 9px; font-weight: 750; }
@@ -111,6 +114,94 @@ def skin(light=False):
         QProgressBar::chunk { background: #a680f8; border-radius: 6px; }
         QScrollArea { border: 0; }
     """ % c
+
+
+
+class AvatarRowDelegate(QStyledItemDelegate):
+    """Avatar monograms and readable tag chips using native Qt painting.
+
+    Keeps the table's selection, scrolling and keyboard navigation intact.
+    """
+
+    def paint(self, painter, option, index):
+        painter.save()
+        painter.setRenderHint(QPainter.Antialiasing)
+        selected = bool(option.state & QStyle.State_Selected)
+        light = bool(self.parent().property("lightMode"))
+        row_bg = "#e9e4fb" if light else "#2b2546"
+        base_bg = "#ffffff" if light else "#151b30"
+        alternate_bg = "#f5f6fc" if light else "#191e33"
+        painter.fillRect(option.rect, QColor(row_bg if selected else
+                                             (alternate_bg if index.row() % 2 else base_bg)))
+        r = option.rect.adjusted(12, 7, -9, -7)
+        text = str(index.data() or "")
+        main = QColor("#22213c" if light else "#f7f4ff")
+        secondary = QColor("#6c7390" if light else "#a5aecb")
+        if index.column() == 0:
+            icon = r.adjusted(0, 7, 0, -7)
+            icon.setWidth(36)
+            icon.setHeight(36)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(QColor("#8950d9" if selected else "#573b91"))
+            painter.drawRoundedRect(icon, 11, 11)
+            initial = text[:1].upper() or "A"
+            painter.setPen(QColor("#ffffff"))
+            font = QFont()
+            font.setBold(True)
+            font.setPointSize(14)
+            painter.setFont(font)
+            painter.drawText(icon, Qt.AlignCenter, initial)
+            painter.setPen(main)
+            font.setBold(True)
+            font.setPointSize(10)
+            painter.setFont(font)
+            name_rect = r.adjusted(49, 0, 0, 0)
+            painter.drawText(name_rect, Qt.AlignVCenter | Qt.AlignLeft,
+                             painter.fontMetrics().elidedText(text, Qt.ElideRight, name_rect.width()))
+        elif index.column() == 1:
+            tags = index.data(Qt.UserRole) or []
+            if not tags:
+                painter.setPen(secondary)
+                painter.drawText(r, Qt.AlignVCenter | Qt.AlignLeft, "— No tags yet")
+            else:
+                x, center_y = r.left(), r.center().y()
+                font = QFont()
+                font.setPointSize(9)
+                font.setBold(True)
+                painter.setFont(font)
+                available = r.right()
+                for idx, tag in enumerate(tags):
+                    width = min(185, painter.fontMetrics().horizontalAdvance(tag) + 24)
+                    if x + width > available - 24:
+                        rest = len(tags) - idx
+                        if x + 35 < available:
+                            painter.setPen(secondary)
+                            painter.drawText(x + 6, center_y + 5, f"+{rest}")
+                        break
+                    color = "#f87dbb" if tag.startswith("content_") else "#76dbe9"
+                    fill = "#572846" if tag.startswith("content_") else "#214556"
+                    if light:
+                        color = "#913265" if tag.startswith("content_") else "#16677a"
+                        fill = "#ffe1f0" if tag.startswith("content_") else "#def9fc"
+                    painter.setPen(Qt.NoPen)
+                    painter.setBrush(QColor(fill))
+                    painter.drawRoundedRect(x, center_y - 13, width, 26, 11, 11)
+                    painter.setPen(QColor(color))
+                    painter.drawText(x + 12, center_y + 5, tag)
+                    x += width + 8
+        else:
+            font = QFont()
+            font.setPointSize(9)
+            painter.setFont(font)
+            painter.setPen(secondary)
+            painter.drawText(r, Qt.AlignVCenter | Qt.AlignLeft,
+                             painter.fontMetrics().elidedText(text, Qt.ElideMiddle, r.width()))
+        painter.setPen(QColor("#333a55" if not light else "#e4e7f0"))
+        painter.drawLine(option.rect.bottomLeft(), option.rect.bottomRight())
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        return QSize(100, 62)
 
 
 class LoginWorker(QThread):
@@ -280,7 +371,7 @@ class TaggerApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("VRChat Avatar Tagger")
         self.resize(1260, 820)
-        self.setMinimumSize(980, 640)
+        self.setMinimumSize(1050, 680)
         self.setWindowIcon(QIcon(resource_file("app-icon.png")))
         self.setStyleSheet(skin())
         self.api = None
@@ -313,7 +404,30 @@ class TaggerApp(QMainWindow):
         outer.setContentsMargins(30, 24, 30, 24)
         outer.addStretch()
         center = QHBoxLayout()
-        center.addStretch()
+        center.setSpacing(26)
+        welcome = QVBoxLayout()
+        welcome.setContentsMargins(35, 38, 35, 38)
+        welcome.setSpacing(19)
+        welcome.addWidget(named_label("DESIGNED BY KSYUSHA (КСЮША)", "eyebrow"))
+        welcome.addSpacing(15)
+        welcome.addWidget(named_label("YOUR AVATARS.\nYOUR RULES.", "heroTitle"))
+        welcome.addWidget(named_label(
+            "A better way to organize your VRChat collection. "
+            "Search every avatar, build tag sets, preview edits, and apply changes with confidence.",
+            "heroHint"
+        ))
+        welcome.addSpacing(16)
+        for item in (
+            "✦  Manage content warnings in bulk",
+            "◈  Find avatars without the endless scrolling",
+            "◎  Preview before anything changes",
+            "↺  Resume long sessions right where you left off",
+        ):
+            welcome.addWidget(named_label(item, "sectionTitle"))
+        welcome.addStretch()
+        welcome.addWidget(named_label("VRCHAT AVATAR TAGGER  •  V" + VERSION, "eyebrow"))
+        welcome_panel = layout_panel(welcome, "heroPanel")
+        center.addWidget(welcome_panel, 1)
         body = QVBoxLayout()
         body.setContentsMargins(38, 34, 38, 34)
         body.setSpacing(16)
@@ -337,9 +451,9 @@ class TaggerApp(QMainWindow):
         self.password.setPlaceholderText("VRChat password")
         self.password.returnPressed.connect(self.login)
         body.addWidget(self.password)
-        self.login_btn = button("Sign in to VRChat  →", "primary", self.login)
+        self.login_btn = button("Continue to your avatars  →", "primary", self.login)
         body.addWidget(self.login_btn)
-        self.login_status = named_label("Connect securely using your VRChat credentials.", "hint")
+        self.login_status = named_label("No account password is saved by the app.", "hint")
         self.login_status.setAlignment(Qt.AlignCenter)
         body.addWidget(self.login_status)
         body.addSpacing(8)
@@ -348,7 +462,6 @@ class TaggerApp(QMainWindow):
         login_panel = layout_panel(body, "loginPanel")
         login_panel.setFixedWidth(460)
         center.addWidget(login_panel)
-        center.addStretch()
         outer.addLayout(center)
         outer.addStretch()
         self.stack.addWidget(page)
@@ -413,6 +526,18 @@ class TaggerApp(QMainWindow):
         self.refresh_btn = button("↻  Refresh avatars", callback=self.refresh)
         header.addWidget(self.refresh_btn)
         all_layout.addLayout(header)
+        hero = QHBoxLayout()
+        hero.setContentsMargins(19, 16, 19, 16)
+        hero_col = QVBoxLayout()
+        hero_col.setSpacing(5)
+        hero_col.addWidget(named_label("CREATOR CONTROL CENTER", "eyebrow"))
+        hero_col.addWidget(named_label("Every avatar. One organized workspace.", "sectionTitle"))
+        hero_col.addWidget(named_label("Pick your collection, choose tags, preview your changes."))
+        hero.addLayout(hero_col, 1)
+        self.mode_pill = named_label("●  PREVIEW-FIRST WORKFLOW", "pill")
+        hero.addWidget(self.mode_pill, 0, Qt.AlignVCenter)
+        all_layout.addWidget(layout_panel(hero, "heroPanel"))
+
         stats = QHBoxLayout()
         self.total_stat, self.selected_stat, self.tagged_stat = (
             named_label("0", "statValue"), named_label("0", "statValue"), named_label("0", "statValue")
@@ -439,8 +564,21 @@ class TaggerApp(QMainWindow):
         search.addWidget(button("Select visible", callback=self.select_visible))
         search.addWidget(button("Clear", callback=self.clear_selection))
         left.addLayout(search)
+        filters = QHBoxLayout()
+        filters.setSpacing(8)
+        self.filter_mode = QComboBox()
+        self.filter_mode.addItems(["All avatars", "With content warnings", "Without content warnings", "Has any tags", "Untagged"])
+        self.filter_mode.currentIndexChanged.connect(self.render_avatars)
+        filters.addWidget(named_label("SHOW", "eyebrow"))
+        filters.addWidget(self.filter_mode, 1)
+        filters.addStretch(1)
+        left.addLayout(filters)
         self.library = QTableWidget(0, 3)
-        self.library.setHorizontalHeaderLabels(["AVATAR NAME", "CURRENT TAGS", "ID"])
+        self.library.setHorizontalHeaderLabels(["AVATAR NAME", "TAGS", "AVATAR ID"])
+        self.library.setItemDelegate(AvatarRowDelegate(self.library))
+        self.library.setShowGrid(False)
+        self.library.setWordWrap(False)
+        self.library.setProperty("lightMode", False)
         self.library.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.library.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.library.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -498,12 +636,18 @@ class TaggerApp(QMainWindow):
         self.limit.setValue(0)
         limit_row.addWidget(self.limit)
         right.addLayout(limit_row)
-        self.run_btn = button("Preview selected avatars →", "primary", self.start_bulk)
+        self.run_btn = button("Preview changes  →", "primary", self.start_bulk)
         right.addWidget(self.run_btn)
-        self.dry.toggled.connect(lambda value: self.run_btn.setText("Preview selected avatars →" if value else "Apply tags to selected →"))
+        self.dry.toggled.connect(lambda value: self.run_btn.setText("Preview changes  →" if value else "Apply selected changes  →"))
         right.addWidget(button("Edit one avatar's tags", callback=self.edit_selected))
         right.addStretch()
-        actions_layout.addWidget(layout_panel(right), 2)
+        # Keep the tag studio accessible on smaller notebook displays.
+        studio_scroll = QScrollArea()
+        studio_scroll.setWidgetResizable(True)
+        studio_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        studio_scroll.setMinimumWidth(285)
+        studio_scroll.setWidget(layout_panel(right))
+        actions_layout.addWidget(studio_scroll, 2)
         all_layout.addLayout(actions_layout, 1)
         footer = QHBoxLayout()
         self.progress = QProgressBar()
@@ -526,11 +670,20 @@ class TaggerApp(QMainWindow):
         lay.addWidget(named_label("ACTION HISTORY", "eyebrow"))
         lay.addWidget(named_label("Activity & progress", "pageTitle"))
         lay.addWidget(named_label("Review progress, preview changes, successful updates, and request errors."))
+        activity_header = QHBoxLayout()
+        self.activity_progress = QProgressBar()
+        self.activity_progress.setRange(0, 100)
+        self.activity_progress.setValue(0)
+        activity_header.addWidget(self.activity_progress, 1)
+        self.activity_status = named_label("Waiting for an operation")
+        activity_header.addWidget(self.activity_status)
+        lay.addLayout(activity_header)
         self.activity = QPlainTextEdit()
         self.activity.setReadOnly(True)
         self.activity.setPlainText("Your activity will show here after signing in.\n")
         lay.addWidget(self.activity, 1)
         row = QHBoxLayout()
+        row.addWidget(button("← Back to avatars", callback=lambda: self.change_page(0)))
         row.addWidget(button("Clear activity view", callback=self.activity.clear))
         row.addWidget(button("Clear saved resume records", "danger", self.clear_progress))
         row.addStretch()
@@ -628,7 +781,9 @@ class TaggerApp(QMainWindow):
 
     def toggle_theme(self):
         self.light = not self.light
+        self.library.setProperty("lightMode", self.light)
         self.setStyleSheet(skin(self.light))
+        self.library.viewport().update()
 
     def login(self):
         user, password = self.username.text().strip(), self.password.text()
@@ -655,6 +810,7 @@ class TaggerApp(QMainWindow):
         self.login_status.setText("Connected successfully.")
         self.stack.setCurrentIndex(1)
         self.side_status.setText("●  " + display_name)
+        self._event("Welcome back to your avatar workspace.")
         self._event("Signed in as " + display_name)
         self.refresh()
 
@@ -692,9 +848,19 @@ class TaggerApp(QMainWindow):
         if not hasattr(self, "library"):
             return
         needle = self.search.text().strip().lower()
-        self.filtered = [a for a in self.avatars
-                         if needle in str(a.name or "").lower() or
-                         needle in " ".join(a.tags or []).lower()]
+        warning_values = {value for _, value in CONTENT_TAGS}
+        filter_index = self.filter_mode.currentIndex()
+        def matches(avatar):
+            tags = set(avatar.tags or [])
+            if needle and needle not in str(avatar.name or "").lower() and needle not in " ".join(tags).lower():
+                return False
+            has_warning = bool(tags & warning_values)
+            if filter_index == 1: return has_warning
+            if filter_index == 2: return not has_warning
+            if filter_index == 3: return bool(tags)
+            if filter_index == 4: return not tags
+            return True
+        self.filtered = [avatar for avatar in self.avatars if matches(avatar)]
         self.library.blockSignals(True)
         self.library.setRowCount(len(self.filtered))
         for row, avatar in enumerate(self.filtered):
@@ -704,8 +870,10 @@ class TaggerApp(QMainWindow):
                                          str(avatar.id))):
                 item = QTableWidgetItem(value)
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                if col == 1:
+                    item.setData(Qt.UserRole, tags)
                 self.library.setItem(row, col, item)
-            self.library.setRowHeight(row, 54)
+            self.library.setRowHeight(row, 62)
             if str(avatar.id) in self.selected_avatar_ids:
                 index = self.library.model().index(row, 0)
                 self.library.selectionModel().select(
@@ -776,6 +944,9 @@ class TaggerApp(QMainWindow):
         self.stop_btn.setEnabled(True)
         self.progress.setRange(0, len(selected))
         self.progress.setValue(0)
+        self.activity_progress.setRange(0, len(selected))
+        self.activity_progress.setValue(0)
+        self.activity_status.setText("Preview running…" if preview else "Applying changes…")
         self.change_page(1)
         self._event(f"{'PREVIEW' if preview else 'APPLY'} started for {len(selected)} avatars.")
         worker = TagWorker(self.api, selected, tags, remove, preview,
@@ -795,7 +966,10 @@ class TaggerApp(QMainWindow):
     def update_progress(self, index, total):
         self.progress.setMaximum(total)
         self.progress.setValue(index)
+        self.activity_progress.setMaximum(total)
+        self.activity_progress.setValue(index)
         self.progress_label.setText(f"{index}/{total}")
+        self.activity_status.setText(f"Processed {index} of {total} avatars")
 
     def avatar_changed(self, avatar_id, tags):
         for avatar in self.avatars:
@@ -814,6 +988,9 @@ class TaggerApp(QMainWindow):
                     f" · changed: {counts['updated']}, unchanged: {counts['unchanged']}, " +
                     f"resumed: {counts['resumed']}, failed: {counts['failed']}")
         self.progress_label.setText("Preview done" if preview else "Done")
+        self.activity_status.setText(
+            f"{'Preview' if preview else 'Update'} complete · {counts['updated']} changes, {counts['failed']} errors"
+        )
 
     def edit_selected(self):
         if self.running:
