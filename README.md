@@ -1,10 +1,26 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/y2kbeatzz-dot/vrchat-avatar-tagger/main/banner.png" width="100%">
+  <a href="https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/" title="Open the official VRChat Avatar Tagger website">
+    <img src="https://raw.githubusercontent.com/y2kbeatzz-dot/vrchat-avatar-tagger/main/banner.png" width="100%" alt="VRChat Avatar Tagger — click to open the website">
+  </a>
 </p>
 
-# vrchat-avatar-tagger
+<p align="center">
+  <a href="https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"><img alt="Visit the Website" src="https://img.shields.io/badge/Visit-Website-ff4aa4?style=for-the-badge&logo=githubpages&logoColor=white"></a>
+  <a href="https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest"><img alt="Download Latest Release" src="https://img.shields.io/badge/Download-Latest_Release-59e7fa?style=for-the-badge&logo=github&logoColor=black"></a>
+  <a href="https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/actions/workflows/release.yml"><img alt="Desktop release build status" src="https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/actions/workflows/release.yml/badge.svg"></a>
+</p>
 
-A small command-line tool to bulk-apply [VRChat Content Warning tags](https://hello.vrchat.com/creator-guidelines) (Sexually Suggestive, Adult Language and Themes, Graphic Violence, Excessive Gore, Extreme Horror) to **all of your own avatars** at once, instead of clicking through each one individually on the VRChat website.
+<p align="center">
+  <a href="https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"><img src="assets/icon.svg" width="110" alt="VRChat Avatar Tagger desktop app icon"></a>
+</p>
+
+# VRChat Avatar Tagger
+
+**Bulk manage your own VRChat avatar tags on macOS and Windows — preview first, then apply.**
+
+**[🌐 Official Website](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/)** · **[📦 All GitHub Releases](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases)** · **[🐛 Issues & Support](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/issues)**
+
+A desktop app and command-line tool to bulk-manage [VRChat Content Warning tags](https://hello.vrchat.com/creator-guidelines) (Sexually Suggestive, Adult Language and Themes, Graphic Violence, Excessive Gore, Extreme Horror) to **all of your own avatars** at once, instead of clicking through each one individually on the VRChat website.
 
 Useful if you have a large number of avatars and need to get them properly labeled to comply with VRChat's Creator Guidelines and upcoming Content Gating / Age Verification enforcement.
 
@@ -18,11 +34,6 @@ Useful if you have a large number of avatars and need to get them properly label
 ## GUI App (recommended)
 
 If you'd rather not deal with the command line at all, use the desktop app version.
-
-**Windows:** install [Python 3](https://www.python.org/downloads/windows/) and check
-**Add python.exe to PATH** during setup. Then extract the whole ZIP and double-click
-`run_gui.bat`. The launcher creates a private environment and installs the required
-package automatically. If startup fails, the launcher stays open and shows the error.
 
 **macOS (Apple Silicon or Intel):** download the matching DMG from the [latest GitHub release](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest), open it, and drag **VRChat Avatar Tagger.app** into **Applications**. No Python installation is needed for release builds. These community builds are currently unsigned and not notarized; if macOS blocks launch, use **System Settings → Privacy & Security → Open Anyway** after confirming you trust the download.
 
@@ -40,7 +51,7 @@ On Mac you can also use `run_gui_mac.command` (the first run installs dependenci
 
 **Website:** [VRChat Avatar Tagger Downloads](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/) · [All Releases](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases)
 
-**Maintainers:** merges to `main` build macOS Apple Silicon, macOS Intel and Windows packages, then publish the version listed in `VERSION` to GitHub Releases. `.github/workflows/pages.yml` deploys the website when Pages is configured with **GitHub Actions** as its build/deployment source. Check Actions for build and deployment status.
+**Maintainers:** merges to `main` build macOS Apple Silicon DMG, macOS Intel DMG, and Windows ZIP with the project icon, then automatically create or update the version in `VERSION` under the repository’s **Releases** tab. To publish a new numbered release, update `VERSION` (and `RELEASE_NOTES.md`) in a commit to `main`. `.github/workflows/pages.yml` deploys the website when Pages is configured with **GitHub Actions** as its build/deployment source. Check Actions for build and deployment status.
 
 The app lets you:
 - Log in (handles email/authenticator 2FA with a popup)
@@ -51,7 +62,7 @@ The app lets you:
 - **Double-click any single avatar** to open its full tag list and add, remove, or fix individual tags on just that one avatar
 - Set a limit on how many get changed in one run
 - Preview with "Dry run" before applying anything for real
-- **Resume automatically**: progress is saved to `tagger_progress.json` next to the script as each avatar is updated, so if you stop a run (or the app closes) partway through, re-running the same tags/action skips whatever's already done. Uncheck "Resume" or hit "Clear saved progress" to start fresh.
+- **Resume automatically**: progress is saved to `tagger_progress.json` in the local application data directory as each avatar is updated, so if you stop a run (or the app closes) partway through, re-running the same tags/action skips whatever's already done. Uncheck "Resume" or hit "Clear saved progress" to start fresh.
 - Watch a live log and progress bar while it runs, with a Stop button if you change your mind
 
 ![The VRChat Avatar Tagger app window, showing the tag checkboxes, a searchable avatar list, and a live log](screenshot.png)
@@ -140,6 +151,9 @@ python3 tag_avatars.py --tags sex --limit 20
 | `horror`   | Extreme Horror                  |
 
 ## Notes
+
+The desktop app icon is generated by [`scripts/build_icons.py`](scripts/build_icons.py) as a native macOS `.icns`, Windows `.ico`, and PNG. The source design for README and website branding is [`assets/icon.svg`](assets/icon.svg).
+
 
 - Your username/password are only used locally to log into VRChat's own servers, exactly like the website login. They're entered at runtime (never hardcoded) and nothing is sent anywhere besides VRChat's API.
 - After a successful login, the tool saves a session file (`vrchat_session.cookies`) in its local application data directory (on macOS, `~/Library/Application Support/VRChat Avatar Tagger/`; in source checkouts on Windows/Linux, next to the script) so re-running it doesn't need a fresh login every time. **Don't share or commit this file** — it's as sensitive as being logged in. It's already excluded via `.gitignore`.
