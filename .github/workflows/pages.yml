@@ -7,6 +7,7 @@ on:
       - "index.html"
       - "screenshot.png"
       - "banner.png"
+      - "assets/icon.svg"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -31,6 +32,8 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html screenshot.png banner.png _site/
+          mkdir -p _site/assets
+          cp assets/icon.svg _site/assets/icon.svg
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
