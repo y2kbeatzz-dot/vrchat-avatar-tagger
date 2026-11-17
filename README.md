@@ -31,6 +31,20 @@ Useful if you have a large number of avatars and need to get them properly label
 - Adds the content warning tag(s) you choose to each avatar that doesn't already have them
 - **Never removes** any existing tags, content-warning or otherwise
 
+## About the creator
+
+**Created by Ksyusha (Ксюша)** · [My profiles](https://guns.lol/life999)
+
+### Why I made it
+
+Managing a large VRChat avatar collection can mean opening the same pages repeatedly just to apply or adjust content-warning tags. I wanted a simpler way to select my own avatars, preview changes, and update the tags in a single place without accidentally touching unrelated tags.
+
+### How I built it
+
+VRChat Avatar Tagger is a Python project using the community `vrchatapi` client for authentication and avatar updates. The desktop UI was redesigned in **Qt / PySide6**, and **PyInstaller** packages it for macOS and Windows. GitHub Actions builds the releases, with custom macOS DMGs and a Windows setup wizard. Preview mode, individual edits, and resume controls are included so changes are easier to review and manage.
+
+**[🌐 Project website](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/)** · **[💜 Ksyusha's profiles](https://guns.lol/life999)** · **[📦 Releases](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases)**
+
 ## New in v1.5: redesigned desktop interface
 
 The desktop application has been rebuilt with **Qt (PySide6)** instead of the classic Tkinter look. It now includes a modern responsive desktop layout with **dark/light themes**, sidebar navigation, searchable avatar table, selection statistics, a dedicated **Tag Studio**, interactive progress, and an activity history view. Bulk updates, content warning/custom tags, individual avatar edits, 2FA, dry runs, stop, and resume still work.
