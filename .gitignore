@@ -4,3 +4,9 @@ __pycache__/
 vrchat_session.cookies
 tagger_progress.json
 tagger_error.log
+
+*.dmg
+*.icns
+.DS_Store
+build/
+dist/

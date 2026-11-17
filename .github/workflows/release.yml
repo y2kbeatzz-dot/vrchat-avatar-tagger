@@ -1,0 +1,92 @@
+name: Build and publish desktop release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "VERSION"
+      - "tag_avatars.py"
+      - "tag_avatars_gui.py"
+      - "app_paths.py"
+      - "requirements.txt"
+      - "banner.png"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            platform: macOS-Apple-Silicon
+            artifact: VRChat-Avatar-Tagger-macOS-Apple-Silicon.dmg
+          - runner: macos-15-intel
+            platform: macOS-Intel
+            artifact: VRChat-Avatar-Tagger-macOS-Intel.dmg
+          - runner: windows-latest
+            platform: Windows
+            artifact: VRChat-Avatar-Tagger-Windows.zip
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+      - name: Build desktop app
+        run: python -m PyInstaller --noconfirm --clean --windowed --name "VRChat Avatar Tagger" --collect-all vrchatapi --add-data "banner.png:." tag_avatars_gui.py
+      - name: Package macOS DMG
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          mkdir -p dmg-staging
+          cp -R "dist/VRChat Avatar Tagger.app" dmg-staging/
+          ln -s /Applications dmg-staging/Applications
+          hdiutil create -volname "VRChat Avatar Tagger" -srcfolder dmg-staging -ov -format UDZO "${{ matrix.artifact }}"
+      - name: Package Windows ZIP
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "dist/VRChat Avatar Tagger/*" -DestinationPath "${{ matrix.artifact }}" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-files
+          merge-multiple: true
+      - name: Publish versioned GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(tr -d '\r\n' < VERSION)"
+          test -n "$tag"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release-files/* --clobber
+          else
+            gh release create "$tag" release-files/* \
+              --target "$GITHUB_SHA" \
+              --title "VRChat Avatar Tagger $tag — macOS + Windows" \
+              --notes-file RELEASE_NOTES.md
+          fi
