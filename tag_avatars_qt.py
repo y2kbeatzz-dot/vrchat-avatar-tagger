@@ -22,7 +22,7 @@ from app_paths import resource_file
 from tagger_core import (
     CONTENT_TAGS, DATA_DIR, REQUEST_DELAY, ProgressStore, authenticate,
     create_session, fetch_owned_avatars, normalize_tag, operation_key,
-    update_avatar_tags
+    update_avatar_tags, friendly_login_error
 )
 from vrchatapi.api import avatars_api
 
@@ -30,7 +30,7 @@ REPO_URL = "https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger"
 WEBSITE_URL = "https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"
 CREATOR_NAME = "Ksyusha (Ксюша)"
 CREATOR_PROFILE_URL = "https://guns.lol/life999"
-VERSION = "1.5.2"
+VERSION = "1.5.3"
 
 
 def named_label(text, style="muted"):
@@ -233,7 +233,7 @@ class LoginWorker(QThread):
             save()
             self.success.emit(client, avatars_api.AvatarsApi(client), str(user.display_name))
         except Exception as exc:
-            self.error.emit(f"{type(exc).__name__}: {exc}")
+            self.error.emit(friendly_login_error(exc))
 
 
 class FetchWorker(QThread):
@@ -854,8 +854,20 @@ class TaggerApp(QMainWindow):
 
     def login_failed(self, message):
         self.login_btn.setEnabled(True)
-        self.login_status.setText("Sign-in failed. See the error dialog.")
-        QMessageBox.warning(self, "Could not sign in", message)
+        tls_problem = message.startswith("Secure connection to VRChat could not be verified.")
+        self.login_status.setText(
+            "Secure connection blocked — check your network's certificates."
+            if tls_problem else "Sign-in failed. See the error dialog."
+        )
+        self.statusBar().showMessage(
+            "VRChat certificate not trusted · Connection cancelled safely."
+            if tls_problem else "VRChat sign-in failed."
+        )
+        QMessageBox.warning(
+            self,
+            "Secure connection blocked" if tls_problem else "Could not sign in",
+            message,
+        )
 
     def refresh(self):
         if self.api is None or self.running:
