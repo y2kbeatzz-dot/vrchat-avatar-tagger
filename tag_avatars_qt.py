@@ -871,8 +871,8 @@ class TaggerApp(QMainWindow):
                 item = QTableWidgetItem(value)
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 if col == 1:
-                item.setData(Qt.UserRole, tags)
-            self.library.setItem(row, col, item)
+                    item.setData(Qt.UserRole, tags)
+                self.library.setItem(row, col, item)
             self.library.setRowHeight(row, 62)
             if str(avatar.id) in self.selected_avatar_ids:
                 index = self.library.model().index(row, 0)
