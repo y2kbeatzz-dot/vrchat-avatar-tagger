@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 
-from PySide6.QtCore import Qt, QThread, Signal, QUrl
+from PySide6.QtCore import Qt, QThread, Signal, QUrl, QItemSelectionModel
 from PySide6.QtGui import QIcon, QDesktopServices
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QFrame, QLabel, QPushButton, QLineEdit,
@@ -636,7 +636,10 @@ class TaggerApp(QMainWindow):
                 self.library.setItem(row, col, item)
             self.library.setRowHeight(row, 54)
             if str(avatar.id) in self.selected_avatar_ids:
-                self.library.selectRow(row)
+                index = self.library.model().index(row, 0)
+                self.library.selectionModel().select(
+                    index, QItemSelectionModel.Select | QItemSelectionModel.Rows
+                )
         self.library.blockSignals(False)
         self.library_hint.setText(f"Showing {len(self.filtered)} of {len(self.avatars)} avatars · Double-click to edit tags")
         self.selected_stat.setText(str(len(self.selected_avatar_ids)))
