@@ -204,6 +204,13 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("VRChat Avatar Tagger")
+        # Also use the bundled icon for Windows title bars / Tk window chrome.
+        # macOS may ignore iconphoto in favor of the native .app bundle icon.
+        try:
+            self._window_icon = tk.PhotoImage(file=resource_file("app-icon.png"))
+            self.iconphoto(True, self._window_icon)
+        except (tk.TclError, OSError):
+            pass
         self.geometry("780x680")
         self.minsize(660, 500)
 
