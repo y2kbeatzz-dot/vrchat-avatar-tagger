@@ -985,7 +985,7 @@ class TaggerApp(QMainWindow):
     def tags_to_use(self):
         return set(self.custom_tags) | {value for value, box in self.tag_checks.items() if box.isChecked()}
 
-    def start_bulk(self):
+    def start_bulk(self, preview=False):
         if self.running:
             return
         selected = [a for a in self.avatars if str(a.id) in self.selected_avatar_ids]
@@ -996,19 +996,22 @@ class TaggerApp(QMainWindow):
         if not tags:
             QMessageBox.information(self, "No tags selected", "Choose a warning tag or add a custom tag.")
             return
-        preview = self.dry.isChecked()
+        preview = bool(preview)
         remove = self.mode.currentIndex() == 1
         if not preview:
             description = "REMOVE" if remove else "ADD"
             approved = QMessageBox.question(
                 self, "Confirm avatar updates",
                 f"{description} {len(tags)} tag(s) across {len(selected)} selected avatar(s)?\n\n"
-                "This changes your VRChat account. Unrelated tags will be preserved.",
+                f"Tags: {', '.join(sorted(tags))}\n\n"
+                "Click Yes to send these changes to VRChat. "
+                "Existing unrelated tags will be preserved.",
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if approved != QMessageBox.Yes:
                 return
         self.running = True
         self.run_btn.setEnabled(False)
+        self.preview_btn.setEnabled(False)
         self.refresh_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.progress.setRange(0, len(selected))
@@ -1049,6 +1052,7 @@ class TaggerApp(QMainWindow):
     def bulk_complete(self, counts, preview):
         self.running = False
         self.run_btn.setEnabled(True)
+        self.preview_btn.setEnabled(True)
         self.refresh_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.tagged_stat.setText(str(sum(bool(set(a.tags or []) & {v for _, v in CONTENT_TAGS}) for a in self.avatars)))
@@ -1056,7 +1060,7 @@ class TaggerApp(QMainWindow):
         self._event(("Preview finished" if preview else "Update finished") +
                     f" · changed: {counts['updated']}, unchanged: {counts['unchanged']}, " +
                     f"resumed: {counts['resumed']}, failed: {counts['failed']}")
-        self.progress_label.setText("Preview done" if preview else "Done")
+        self.progress_label.setText("Preview only · Nothing sent" if preview else "VRChat updates finished")
         self.statusBar().showMessage(
             f"Completed · {counts['updated']} affected · {counts['failed']} failed"
         )
@@ -1091,11 +1095,13 @@ class TaggerApp(QMainWindow):
             self._event(f"Saved tags for {avatar.name}.")
             self.running = False
             self.run_btn.setEnabled(True)
+            self.preview_btn.setEnabled(True)
             self.refresh_btn.setEnabled(True)
             self.render_avatars()
         def failed(message):
             self.running = False
             self.run_btn.setEnabled(True)
+            self.preview_btn.setEnabled(True)
             self.refresh_btn.setEnabled(True)
             self._event("ERROR  Single-avatar update failed: " + message)
             QMessageBox.warning(self, "Save failed", message)
