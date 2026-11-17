@@ -19,16 +19,16 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 DisableProgramGroupPage=yes
 WizardStyle=modern
-WizardImageFile=assets\generated\installer-wizard.bmp
-WizardSmallImageFile=assets\generated\installer-wizard-small.bmp
+WizardImageFile=..\assets\generated\installer-wizard.bmp
+WizardSmallImageFile=..\assets\generated\installer-wizard-small.bmp
 WizardImageBackColor=$171122
 WizardSmallImageBackColor=$171122
-SetupIconFile=assets\generated\app-icon.ico
+SetupIconFile=..\assets\generated\app-icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2
 SolidCompression=yes
 SetupLogging=yes
-OutputDir=dist\installer
+OutputDir=..\dist\installer
 OutputBaseFilename=VRChat-Avatar-Tagger-Setup-Windows
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -41,7 +41,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Files]
-Source: "dist\VRChat Avatar Tagger\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\VRChat Avatar Tagger\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"
