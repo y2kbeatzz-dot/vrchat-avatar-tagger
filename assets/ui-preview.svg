@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="780" viewBox="0 0 1280 780" role="img" aria-labelledby="title desc">
+<title id="title">VRChat Avatar Tagger modern desktop interface preview</title><desc id="desc">Illustrated concept of the Qt desktop UI: sidebar navigation, avatars list, content warnings tag studio, statistics and progress.</desc>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#151b35"/><stop offset="1" stop-color="#090e1c"/></linearGradient><linearGradient id="accent"><stop stop-color="#b78aff"/><stop offset="1" stop-color="#ff7dc6"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#020413" flood-opacity=".6"/></filter></defs>
+<rect width="1280" height="780" rx="26" fill="#060a15"/>
+<rect x="12" y="12" width="1256" height="756" rx="23" fill="url(#bg)" stroke="#333951" stroke-width="2" filter="url(#shadow)"/>
+<rect x="12" y="12" width="220" height="756" rx="23" fill="#111729"/><rect x="210" y="12" width="22" height="756" fill="#111729"/>
+<rect x="36" y="36" width="55" height="55" rx="15" fill="#7c45d4"/><path d="M51 72 64 49 83 58 77 81 52 79Z" fill="#f5d8ff"/><circle cx="76" cy="58" r="7" fill="#26134f"/><text x="107" y="57" font-family="Arial" font-size="19" font-weight="bold" fill="#f6f2ff">AVATAR</text><text x="107" y="77" font-family="Arial" font-size="19" font-weight="bold" fill="#f6f2ff">TAGGER</text>
+<text x="38" y="154" font-family="Arial" font-size="12" font-weight="bold" fill="#ac8af0" letter-spacing="2">WORKSPACE</text>
+<rect x="29" y="173" width="184" height="49" rx="12" fill="#32264d"/><rect x="29" y="173" width="4" height="49" rx="2" fill="#b18bff"/><text x="46" y="203" font-family="Arial" font-size="16" font-weight="bold" fill="#f6f2ff">◈  Avatars</text>
+<text x="46" y="270" font-family="Arial" font-size="16" fill="#abb4cd">▤  Activity</text><text x="46" y="326" font-family="Arial" font-size="16" fill="#abb4cd">◌  About</text>
+<circle cx="48" cy="644" r="5" fill="#4bdca5"/><text x="63" y="648" font-family="Arial" font-size="13" fill="#c0c7dd">Connected to VRChat</text>
+<rect x="31" y="679" width="182" height="45" rx="11" fill="#1c233b" stroke="#343b55"/><text x="60" y="707" font-family="Arial" font-size="14" fill="#e6dfff">☼  Toggle theme</text>
+<text x="260" y="62" font-family="Arial" font-size="12" font-weight="bold" fill="#ad91fa" letter-spacing="2">YOUR COLLECTION</text>
+<text x="260" y="105" font-family="Arial" font-size="30" font-weight="bold" fill="#f7f4ff">Avatar workspace</text>
+<text x="260" y="134" font-family="Arial" font-size="14" fill="#a6adc7">Search, select and tag your own avatars</text>
+<rect x="1084" y="62" width="154" height="40" rx="10" fill="#202741" stroke="#36405c"/><text x="1104" y="87" font-family="Arial" font-size="14" fill="#eae4ff">↻  Refresh avatars</text>
+<g font-family="Arial"><rect x="260" y="157" width="292" height="116" rx="17" fill="#171d33" stroke="#333b56"/><text x="280" y="191" fill="#b996f4" font-size="12" font-weight="bold">AVATARS</text><text x="280" y="246" fill="#d9b9ff" font-size="39" font-weight="bold">148</text>
+<rect x="565" y="157" width="292" height="116" rx="17" fill="#171d33" stroke="#333b56"/><text x="585" y="191" fill="#b996f4" font-size="12" font-weight="bold">SELECTED</text><text x="585" y="246" fill="#d9b9ff" font-size="39" font-weight="bold">12</text>
+<rect x="870" y="157" width="368" height="116" rx="17" fill="#171d33" stroke="#333b56"/><text x="890" y="191" fill="#b996f4" font-size="12" font-weight="bold">WITH WARNINGS</text><text x="890" y="246" fill="#d9b9ff" font-size="39" font-weight="bold">89</text></g>
+<rect x="260" y="294" width="650" height="425" rx="17" fill="#171d33" stroke="#333b56"/>
+<text x="285" y="326" font-family="Arial" font-size="12" font-weight="bold" letter-spacing="2" fill="#b996f4">AVATAR LIBRARY</text>
+<rect x="284" y="347" width="370" height="43" rx="10" fill="#202740" stroke="#404768"/><text x="300" y="374" font-family="Arial" font-size="14" fill="#8b93b6">⌕  Search avatar name or tag...</text>
+<rect x="664" y="347" width="118" height="43" rx="10" fill="#202740" stroke="#404768"/><text x="680" y="373" font-family="Arial" font-size="13" fill="#e4ddf5">Select visible</text><rect x="792" y="347" width="91" height="43" rx="10" fill="#202740" stroke="#404768"/><text x="818" y="373" font-family="Arial" font-size="13" fill="#e4ddf5">Clear</text>
+<text x="295" y="425" font-family="Arial" font-size="12" fill="#a0a9cc" letter-spacing="1">AVATAR NAME</text><text x="540" y="425" font-family="Arial" font-size="12" fill="#a0a9cc" letter-spacing="1">CURRENT TAGS</text>
+<g font-family="Arial" font-size="15"><rect x="279" y="440" width="608" height="61" rx="8" fill="#30264e"/><circle cx="304" cy="470" r="9" fill="#ad88fb"/><text x="327" y="477" fill="#f7f2ff" font-weight="bold">Nova</text><rect x="548" y="456" width="159" height="28" rx="14" fill="#54214f"/><text x="564" y="475" fill="#ffb2d5" font-size="13">content_sex</text>
+<circle cx="304" cy="536" r="9" fill="#786ca1"/><text x="327" y="542" fill="#dce0f3">Midnight Fox</text><rect x="548" y="520" width="159" height="28" rx="14" fill="#1c4b60"/><text x="564" y="540" fill="#9deaff" font-size="13">content_horror</text>
+<circle cx="304" cy="601" r="9" fill="#ad88fb"/><text x="327" y="608" fill="#dce0f3">Snowfall</text><rect x="548" y="588" width="143" height="28" rx="14" fill="#2b304f"/><text x="563" y="607" fill="#d5cfee" font-size="13">No warning tags</text>
+<circle cx="304" cy="667" r="9" fill="#786ca1"/><text x="327" y="672" fill="#dce0f3">Purple Skies</text><rect x="548" y="653" width="139" height="28" rx="14" fill="#2b304f"/><text x="562" y="672" fill="#d5cfee" font-size="13">content_adult</text></g>
+<rect x="926" y="294" width="312" height="425" rx="17" fill="#171d33" stroke="#333b56"/>
+<text x="946" y="326" font-family="Arial" font-size="12" font-weight="bold" fill="#b996f4" letter-spacing="2">BULK ACTIONS</text>
+<text x="946" y="359" font-family="Arial" font-size="21" font-weight="bold" fill="#f7f4ff">Tag studio</text>
+<rect x="946" y="377" width="271" height="42" rx="9" fill="#222943" stroke="#3c4462"/><text x="962" y="403" font-family="Arial" font-size="14" fill="#efe9ff">＋  Add selected tags</text>
+<text x="946" y="448" font-family="Arial" font-size="12" fill="#b996f4" letter-spacing="1">CONTENT WARNINGS</text>
+<g font-family="Arial" font-size="14" fill="#d5d9e8"><rect x="951" y="462" width="17" height="17" rx="4" fill="#ac83f0"/><text x="980" y="477">Sexually Suggestive</text>
+<rect x="951" y="495" width="17" height="17" rx="4" fill="#252e48" stroke="#727b9b"/><text x="980" y="510">Adult Language &amp; Themes</text>
+<rect x="951" y="528" width="17" height="17" rx="4" fill="#252e48" stroke="#727b9b"/><text x="980" y="543">Graphic Violence</text>
+<rect x="951" y="561" width="17" height="17" rx="4" fill="#252e48" stroke="#727b9b"/><text x="980" y="576">Extreme Horror</text></g>
+<rect x="945" y="606" width="273" height="48" rx="10" fill="#9e6af2"/><text x="975" y="637" font-family="Arial" font-size="15" font-weight="bold" fill="#ffffff">Preview selected avatars →</text>
+<rect x="945" y="666" width="273" height="35" rx="8" fill="#232a46"/><text x="997" y="689" font-family="Arial" font-size="13" fill="#ece7f8">Edit one avatar</text>
+<rect x="260" y="737" width="930" height="8" rx="4" fill="#2e3455"/><rect x="260" y="737" width="481" height="8" rx="4" fill="url(#accent)"/>
+</svg>
