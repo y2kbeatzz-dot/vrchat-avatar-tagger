@@ -7,14 +7,15 @@ import sys
 import threading
 import time
 
-from PySide6.QtCore import Qt, QThread, Signal, QUrl, QItemSelectionModel
-from PySide6.QtGui import QIcon, QDesktopServices
+from PySide6.QtCore import Qt, QThread, Signal, QUrl, QItemSelectionModel, QSize
+from PySide6.QtGui import QIcon, QDesktopServices, QPainter, QColor, QFont
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QFrame, QLabel, QPushButton, QLineEdit,
     QVBoxLayout, QHBoxLayout, QGridLayout, QStackedWidget, QTableWidget,
     QTableWidgetItem, QAbstractItemView, QHeaderView, QCheckBox, QComboBox,
     QSpinBox, QProgressBar, QPlainTextEdit, QListWidget, QDialog,
-    QDialogButtonBox, QInputDialog, QMessageBox, QScrollArea, QSizePolicy
+    QDialogButtonBox, QInputDialog, QMessageBox, QScrollArea, QSizePolicy,
+    QStyledItemDelegate, QStyle
 )
 
 from app_paths import resource_file
@@ -29,7 +30,7 @@ REPO_URL = "https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger"
 WEBSITE_URL = "https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"
 CREATOR_NAME = "Ksyusha (Ксюша)"
 CREATOR_PROFILE_URL = "https://guns.lol/life999"
-VERSION = "1.5.0"
+VERSION = "1.5.1"
 
 
 def named_label(text, style="muted"):
@@ -75,7 +76,11 @@ def skin(light=False):
         QMainWindow, QStackedWidget, QScrollArea { background: %(bg)s; }
         QFrame#sidebar { background: %(sidebar)s; border-right: 1px solid %(border)s; }
         QFrame#panel, QFrame#stat, QFrame#loginPanel { background: %(panel)s; border: 1px solid %(border)s; border-radius: 17px; }
-        QFrame#heroPanel { background: %(selected)s; border: 1px solid %(border)s; border-radius: 17px; }
+        QFrame#heroPanel { background: %(selected)s; border: 1px solid %(border)s; border-radius: 20px; }
+        QFrame#glassCard { background: %(surface)s; border: 1px solid %(border)s; border-radius: 16px; }
+        QLabel#heroTitle { font-size: 38px; font-weight: 900; color: %(text)s; }
+        QLabel#heroHint { color: %(muted)s; font-size: 14px; }
+        QLabel#pill { color: %(accent)s; background: %(selected)s; border: 1px solid %(border)s; border-radius: 11px; padding: 7px 12px; font-weight: 750; }
         QLabel { background: transparent; }
         QLabel#title { font-size: 30px; font-weight: 800; }
         QLabel#pageTitle { font-size: 24px; font-weight: 800; }
@@ -89,7 +94,7 @@ def skin(light=False):
         QPushButton { background: %(surface)s; color: %(text)s; padding: 9px 14px; border: 1px solid %(border)s; border-radius: 10px; font-weight: 650; }
         QPushButton:hover { background: %(hover)s; border-color: %(accent)s; }
         QPushButton:disabled { color: %(muted)s; }
-        QPushButton#primary { background: #9664e9; color: white; border: 1px solid #b08af8; font-weight: 750; }
+        QPushButton#primary { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #9866ed,stop:1 #db74bc); color: white; border: 1px solid #ba93f7; font-weight: 800; }
         QPushButton#primary:hover { background: #ac80fa; }
         QPushButton#danger { color: %(warning)s; }
         QPushButton#nav { background: transparent; border: 0; text-align: left; padding: 13px 16px; font-size: 14px; }
@@ -100,8 +105,6 @@ def skin(light=False):
         QComboBox::drop-down { border: 0; width: 24px; }
         QComboBox QAbstractItemView { background: %(panel)s; selection-background-color: %(selected)s; border: 1px solid %(border)s; }
         QCheckBox { background: transparent; spacing: 8px; padding: 4px 0; }
-        QCheckBox::indicator { width: 17px; height: 17px; border: 1px solid %(muted)s; border-radius: 5px; background: %(surface)s; }
-        QCheckBox::indicator:checked { background: #9970ef; border-color: #9970ef; }
         QTableWidget { background: %(panel)s; alternate-background-color: %(surface)s; border: 0; gridline-color: transparent; selection-background-color: %(selected)s; selection-color: %(text)s; outline: none; }
         QTableWidget::item { padding: 7px; border-bottom: 1px solid %(border)s; }
         QHeaderView::section { background: %(surface)s; color: %(muted)s; border: 0; border-bottom: 1px solid %(border)s; padding: 12px 9px; font-weight: 750; }
@@ -111,6 +114,94 @@ def skin(light=False):
         QProgressBar::chunk { background: #a680f8; border-radius: 6px; }
         QScrollArea { border: 0; }
     """ % c
+
+
+
+class AvatarRowDelegate(QStyledItemDelegate):
+    """Avatar monograms and readable tag chips using native Qt painting.
+
+    Keeps the table's selection, scrolling and keyboard navigation intact.
+    """
+
+    def paint(self, painter, option, index):
+        painter.save()
+        painter.setRenderHint(QPainter.Antialiasing)
+        selected = bool(option.state & QStyle.State_Selected)
+        light = bool(self.parent().property("lightMode"))
+        row_bg = "#e9e4fb" if light else "#2b2546"
+        base_bg = "#ffffff" if light else "#151b30"
+        alternate_bg = "#f5f6fc" if light else "#191e33"
+        painter.fillRect(option.rect, QColor(row_bg if selected else
+                                             (alternate_bg if index.row() % 2 else base_bg)))
+        r = option.rect.adjusted(12, 7, -9, -7)
+        text = str(index.data() or "")
+        main = QColor("#22213c" if light else "#f7f4ff")
+        secondary = QColor("#6c7390" if light else "#a5aecb")
+        if index.column() == 0:
+            icon = r.adjusted(0, 7, 0, -7)
+            icon.setWidth(36)
+            icon.setHeight(36)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(QColor("#8950d9" if selected else "#573b91"))
+            painter.drawRoundedRect(icon, 11, 11)
+            initial = text[:1].upper() or "A"
+            painter.setPen(QColor("#ffffff"))
+            font = QFont()
+            font.setBold(True)
+            font.setPointSize(14)
+            painter.setFont(font)
+            painter.drawText(icon, Qt.AlignCenter, initial)
+            painter.setPen(main)
+            font.setBold(True)
+            font.setPointSize(10)
+            painter.setFont(font)
+            name_rect = r.adjusted(49, 0, 0, 0)
+            painter.drawText(name_rect, Qt.AlignVCenter | Qt.AlignLeft,
+                             painter.fontMetrics().elidedText(text, Qt.ElideRight, name_rect.width()))
+        elif index.column() == 1:
+            tags = index.data(Qt.UserRole) or []
+            if not tags:
+                painter.setPen(secondary)
+                painter.drawText(r, Qt.AlignVCenter | Qt.AlignLeft, "— No tags yet")
+            else:
+                x, center_y = r.left(), r.center().y()
+                font = QFont()
+                font.setPointSize(9)
+                font.setBold(True)
+                painter.setFont(font)
+                available = r.right()
+                for idx, tag in enumerate(tags):
+                    width = min(185, painter.fontMetrics().horizontalAdvance(tag) + 24)
+                    if x + width > available - 24:
+                        rest = len(tags) - idx
+                        if x + 35 < available:
+                            painter.setPen(secondary)
+                            painter.drawText(x + 6, center_y + 5, f"+{rest}")
+                        break
+                    color = "#f87dbb" if tag.startswith("content_") else "#76dbe9"
+                    fill = "#572846" if tag.startswith("content_") else "#214556"
+                    if light:
+                        color = "#913265" if tag.startswith("content_") else "#16677a"
+                        fill = "#ffe1f0" if tag.startswith("content_") else "#def9fc"
+                    painter.setPen(Qt.NoPen)
+                    painter.setBrush(QColor(fill))
+                    painter.drawRoundedRect(x, center_y - 13, width, 26, 11, 11)
+                    painter.setPen(QColor(color))
+                    painter.drawText(x + 12, center_y + 5, tag)
+                    x += width + 8
+        else:
+            font = QFont()
+            font.setPointSize(9)
+            painter.setFont(font)
+            painter.setPen(secondary)
+            painter.drawText(r, Qt.AlignVCenter | Qt.AlignLeft,
+                             painter.fontMetrics().elidedText(text, Qt.ElideMiddle, r.width()))
+        painter.setPen(QColor("#333a55" if not light else "#e4e7f0"))
+        painter.drawLine(option.rect.bottomLeft(), option.rect.bottomRight())
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        return QSize(100, 62)
 
 
 class LoginWorker(QThread):
@@ -280,7 +371,7 @@ class TaggerApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("VRChat Avatar Tagger")
         self.resize(1260, 820)
-        self.setMinimumSize(980, 640)
+        self.setMinimumSize(1050, 680)
         self.setWindowIcon(QIcon(resource_file("app-icon.png")))
         self.setStyleSheet(skin())
         self.api = None
@@ -440,7 +531,11 @@ class TaggerApp(QMainWindow):
         search.addWidget(button("Clear", callback=self.clear_selection))
         left.addLayout(search)
         self.library = QTableWidget(0, 3)
-        self.library.setHorizontalHeaderLabels(["AVATAR NAME", "CURRENT TAGS", "ID"])
+        self.library.setHorizontalHeaderLabels(["AVATAR NAME", "TAGS", "AVATAR ID"])
+        self.library.setItemDelegate(AvatarRowDelegate(self.library))
+        self.library.setShowGrid(False)
+        self.library.setWordWrap(False)
+        self.library.setProperty("lightMode", False)
         self.library.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.library.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.library.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -628,7 +723,9 @@ class TaggerApp(QMainWindow):
 
     def toggle_theme(self):
         self.light = not self.light
+        self.library.setProperty("lightMode", self.light)
         self.setStyleSheet(skin(self.light))
+        self.library.viewport().update()
 
     def login(self):
         user, password = self.username.text().strip(), self.password.text()
@@ -704,8 +801,10 @@ class TaggerApp(QMainWindow):
                                          str(avatar.id))):
                 item = QTableWidgetItem(value)
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-                self.library.setItem(row, col, item)
-            self.library.setRowHeight(row, 54)
+                if col == 1:
+                item.setData(Qt.UserRole, tags)
+            self.library.setItem(row, col, item)
+            self.library.setRowHeight(row, 62)
             if str(avatar.id) in self.selected_avatar_ids:
                 index = self.library.model().index(row, 0)
                 self.library.selectionModel().select(
