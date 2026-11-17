@@ -1212,9 +1212,22 @@ class TaggerApp(QMainWindow):
         self.activity.appendPlainText(f"[{stamp}]  {message}")
 
     def closeEvent(self, event):
-        if self.running:
-            QMessageBox.information(self, "Operation in progress",
-                "Stop the current operation before closing so progress is preserved.")
+        # QThread's destructor aborts the entire macOS app if the worker is
+        # still running. Request cooperative cancellation and let the *last*
+        # finished signal close the window. Never destroy a running QThread.
+        active = [worker for worker in self.workers if worker.isRunning()]
+        if active:
+            self._closing_requested = True
+            self._avatar_render_timer.stop()
+            self.statusBar().showMessage(
+                "Finishing current VRChat request before closing safely…"
+            )
+            for worker in active:
+                cancelled = getattr(worker, "cancelled", None)
+                if cancelled is not None:
+                    cancelled.set()
+                if isinstance(worker, LoginWorker):
+                    worker.submit_code("")  # release any outstanding 2FA wait
             event.ignore()
             return
         event.accept()
@@ -1226,6 +1239,27 @@ def main():
     app.setOrganizationName("VRChat Avatar Tagger")
     app.setWindowIcon(QIcon(resource_file("app-icon.png")))
     win = TaggerApp()
+
+    def handle_unexpected_exception(exc_type, exc, tb):
+        # An unhandled Qt slot exception must not cause Python to finalize
+        # while background QThreads are still alive (Qt aborts on that).
+        # Keep diagnostics in the local application data directory.
+        from pathlib import Path
+        import os
+        log_path = Path(DATA_DIR) / "tagger_error.log"
+        try:
+            fd = os.open(
+                str(log_path), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600
+            )
+            with os.fdopen(fd, "a", encoding="utf-8") as logfile:
+                traceback.print_exception(exc_type, exc, tb, file=logfile)
+            win.statusBar().showMessage(
+                "An unexpected error occurred · See tagger_error.log in app data"
+            )
+        except Exception:
+            traceback.print_exception(exc_type, exc, tb, file=sys.stderr)
+
+    sys.excepthook = handle_unexpected_exception
     win.show()
     return app.exec()
 
