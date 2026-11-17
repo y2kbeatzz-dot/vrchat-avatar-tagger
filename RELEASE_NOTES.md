@@ -1,24 +1,24 @@
-# VRChat Avatar Tagger v1.5.1 — Polished Desktop UI
+# VRChat Avatar Tagger v1.5.2 — Desktop usability polish
 
-## A better app interface
-- New avatar monograms and custom-painted, color-coded tag chips.
-- Redesigned two-column sign-in screen with a creator-branded welcome panel.
-- Quick library filters: all avatars, with/without content warnings, tagged, and untagged.
-- Tag Studio scrolls on smaller Mac and Windows screens.
-- Activity page now displays real-time progress, a summary, and a shortcut back to avatars.
-- Refined dark and light themes with improved contrast and selection styling.
+## Desktop UI
+- Added keyboard shortcuts to search, refresh, switch sidebar views, toggle light/dark mode, and open About.
+- Added clearer tooltips in the avatar library and refresh controls.
+- Added a persistent status bar showing login state, avatar load count, and tagging completion results.
+- Retained the v1.5.1 Qt UI with color-coded avatar tags, creator About page and preview-first workflow.
 
 ## Custom installers
-- **macOS Apple Silicon / Intel:** custom drag-to-Applications DMG, project icon and branded background.
-- **Windows:** branded Setup EXE with install location, optional desktop shortcut, Start Menu entry, launch-after-install and uninstaller.
-- **Windows portable ZIP:** still available for users who don't want to install.
+- macOS Apple Silicon and Intel DMG builds retain their custom drag-to-Applications artwork.
+- Windows branded Setup EXE retains the wizard, shortcuts, and uninstall support, and the portable ZIP is still offered.
+- All four installers continue to be published in GitHub Releases automatically.
 
-## Creator
-Created by **Ksyusha (Ксюша)**. [About and profiles](https://guns.lol/life999).
+## Shortcuts
+- Ctrl/Command + F — Search avatars
+- Ctrl/Command + R — Refresh avatars
+- Ctrl/Command + 1/2/3 — Avatars / Activity / About
+- Ctrl/Command + Shift + L — Toggle theme
+- F1 — About
 
-## Download
-https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest
+Created by **Ksyusha (Ксюша)** · https://guns.lol/life999
+Official website: https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/
 
-Privacy and safety: session and progress stay local, previews don't write avatar tags, and real bulk changes ask for confirmation. An unofficial community project not affiliated with VRChat.
-
-Mac builds are not Apple notarized or signed; only bypass Gatekeeper if you trust the downloaded app.
+This is an unofficial community project, not affiliated with VRChat. macOS builds are not code-signed or notarized.

@@ -45,6 +45,10 @@ VRChat Avatar Tagger is a Python project using the community `vrchatapi` client 
 
 **[🌐 Project website](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/)** · **[💜 Ksyusha's profiles](https://guns.lol/life999)** · **[📦 Releases](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases)**
 
+## v1.5.2 — UI navigation polish
+
+The Qt desktop app adds **keyboard shortcuts** (⌘/Ctrl+F search, ⌘/Ctrl+R refresh, ⌘/Ctrl+1/2/3 navigation, F1 About), clearer tooltips and a status bar for tagging feedback. Branded Mac DMG installers, a Windows Setup wizard, and the portable Windows ZIP are available on the [GitHub Releases page](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest).
+
 ## v1.5.1 — A more polished, easier-to-use UI
 
 This update improves the desktop app itself (not just the downloads):
