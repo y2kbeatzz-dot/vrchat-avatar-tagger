@@ -1,7 +1,7 @@
 ; VRChat Avatar Tagger — branded Windows installer
 ; Compiled by Inno Setup in GitHub Actions, with assets built by Pillow.
 #define MyAppName "VRChat Avatar Tagger"
-#define MyAppVersion "1.5.1"
+#define MyAppVersion "1.5.2"
 #define MyAppExeName "VRChat Avatar Tagger.exe"
 
 [Setup]
@@ -32,7 +32,7 @@ OutputDir=..\dist\installer
 OutputBaseFilename=VRChat-Avatar-Tagger-Setup-Windows
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-VersionInfoVersion=1.5.1.0
+VersionInfoVersion=1.5.2.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
