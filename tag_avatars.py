@@ -48,8 +48,9 @@ from vrchatapi.exceptions import UnauthorizedException
 from vrchatapi.models.two_factor_auth_code import TwoFactorAuthCode
 from vrchatapi.models.two_factor_email_code import TwoFactorEmailCode
 from vrchatapi.models.update_avatar_request import UpdateAvatarRequest
+from app_paths import data_directory, save_session_securely
 
-COOKIE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vrchat_session.cookies")
+COOKIE_FILE = os.path.join(data_directory(), "vrchat_session.cookies")
 
 # Friendly name -> official VRChat content tag string (VRChat's Content
 # Warning system, see https://hello.vrchat.com/creator-guidelines)
@@ -193,7 +194,7 @@ def login():
 
     def save_session():
         try:
-            cookie_jar.save(ignore_discard=True, ignore_expires=True)
+            save_session_securely(cookie_jar, COOKIE_FILE)
         except Exception:
             pass
 
