@@ -49,5 +49,7 @@ jobs:
         run: |
           python scripts/build_icons.py
           python scripts/build_installer_art.py
+      - name: Verify TLS trust handling without network login
+        run: python tests/test_tls.py
       - name: Headless Qt application smoke test
         run: python tests/test_ui_smoke.py
