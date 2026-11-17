@@ -1057,15 +1057,29 @@ class TaggerApp(QMainWindow):
         self.stop_btn.setEnabled(False)
         self.tagged_stat.setText(str(sum(bool(set(a.tags or []) & {v for _, v in CONTENT_TAGS}) for a in self.avatars)))
         self.render_avatars()
-        self._event(("Preview finished" if preview else "Update finished") +
-                    f" · changed: {counts['updated']}, unchanged: {counts['unchanged']}, " +
-                    f"resumed: {counts['resumed']}, failed: {counts['failed']}")
+        action = "PREVIEW ONLY · NO CHANGES SENT" if preview else "APPLIED · CONFIRMED BY VRCHAT"
+        self._event(
+            f"{action} · {'would change' if preview else 'saved'}: {counts['updated']}, "
+            f"unchanged: {counts['unchanged']}, failed: {counts['failed']}"
+        )
         self.progress_label.setText("Preview only · Nothing sent" if preview else "VRChat updates finished")
         self.statusBar().showMessage(
-            f"Completed · {counts['updated']} affected · {counts['failed']} failed"
+            f"{'Preview only' if preview else 'VRChat confirmed'} · "
+            f"{counts['updated']} avatar(s) · {counts['failed']} failed"
         )
         self.activity_status.setText(
-            f"{'Preview' if preview else 'Update'} complete · {counts['updated']} changes, {counts['failed']} errors"
+            f"{'Preview only' if preview else 'Applied & confirmed'} · "
+            f"{counts['updated']} changed · {counts['failed']} failed"
+        )
+        message = (
+            f"{counts['updated']} avatar(s) would change. No changes were sent to VRChat."
+            if preview else
+            f"VRChat confirmed {counts['updated']} avatar update(s). "
+            f"{counts['unchanged']} already matched. {counts['failed']} failed. "
+            "Review Activity for details."
+        )
+        QMessageBox.information(
+            self, "Preview complete" if preview else "VRChat update results", message
         )
 
     def edit_selected(self):
