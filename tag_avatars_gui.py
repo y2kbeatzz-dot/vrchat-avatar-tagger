@@ -17,6 +17,7 @@ import json
 import math
 import os
 import queue
+import sys
 import threading
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
@@ -29,11 +30,13 @@ from vrchatapi.exceptions import UnauthorizedException
 from vrchatapi.models.two_factor_auth_code import TwoFactorAuthCode
 from vrchatapi.models.two_factor_email_code import TwoFactorEmailCode
 from vrchatapi.models.update_avatar_request import UpdateAvatarRequest
+from app_paths import data_directory, resource_file, save_session_securely
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-COOKIE_FILE = os.path.join(SCRIPT_DIR, "vrchat_session.cookies")
-PROGRESS_FILE = os.path.join(SCRIPT_DIR, "tagger_progress.json")
-BANNER_FILE = os.path.join(SCRIPT_DIR, "banner.png")
+DATA_DIR = data_directory()
+COOKIE_FILE = os.path.join(DATA_DIR, "vrchat_session.cookies")
+PROGRESS_FILE = os.path.join(DATA_DIR, "tagger_progress.json")
+BANNER_FILE = resource_file("banner.png")
+UI_FONT = "Helvetica Neue" if sys.platform == "darwin" else "Segoe UI"
 REQUEST_DELAY = 1.2  # seconds between API calls, be polite to VRChat's API
 
 CONTENT_TAGS = [
@@ -136,7 +139,7 @@ class TagEditorDialog(tk.Toplevel):
 
         self.tags = list(avatar.tags or [])
 
-        ttk.Label(self, text=avatar.name, font=("Segoe UI", 12, "bold")).pack(pady=(12, 4))
+        ttk.Label(self, text=avatar.name, font=(UI_FONT, 12, "bold")).pack(pady=(12, 4))
         ttk.Label(self, text="All tags currently on this avatar (content-warning\nand any other tags). Select one and remove it, or\ntype a new tag below to add it.", justify="center").pack(pady=(0, 8))
 
         list_frame = ttk.Frame(self, padding=(12, 0))
@@ -281,7 +284,7 @@ class App(tk.Tk):
 
         self._add_banner_if_available(self.login_frame)
 
-        ttk.Label(self.login_frame, text="VRChat Avatar Tagger", font=("Segoe UI", 16, "bold")).pack(pady=(0, 16))
+        ttk.Label(self.login_frame, text="VRChat Avatar Tagger", font=(UI_FONT, 16, "bold")).pack(pady=(0, 16))
 
         form = ttk.Frame(self.login_frame)
         form.pack()
@@ -306,7 +309,7 @@ class App(tk.Tk):
 
         top = ttk.Frame(self.main_frame)
         top.pack(fill="x", pady=(0, 8))
-        self.logged_in_label = ttk.Label(top, text="", font=("Segoe UI", 10, "bold"))
+        self.logged_in_label = ttk.Label(top, text="", font=(UI_FONT, 10, "bold"))
         self.logged_in_label.pack(side="left")
         ttk.Checkbutton(
             top, text="Dark mode", variable=self.dark_mode_var, command=self._on_toggle_dark_mode
@@ -502,7 +505,7 @@ class App(tk.Tk):
 
         def save_session():
             try:
-                cookie_jar.save(ignore_discard=True, ignore_expires=True)
+                save_session_securely(cookie_jar, COOKIE_FILE)
             except Exception:
                 pass
 
@@ -761,7 +764,7 @@ class App(tk.Tk):
     def _write_error_log(self, heading, error):
         """Keep a useful local traceback instead of letting worker failures vanish."""
         try:
-            path = os.path.join(SCRIPT_DIR, "tagger_error.log")
+            path = os.path.join(DATA_DIR, "tagger_error.log")
             with open(path, "a", encoding="utf-8") as f:
                 f.write(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] {heading}\n")
                 traceback.print_exception(type(error), error, error.__traceback__, file=f)
@@ -782,10 +785,10 @@ class App(tk.Tk):
                     self._log(f"Found {len(self.all_avatars)} avatars.")
                 elif kind == "load_failed":
                     self._log("Could not load avatars: " + payload)
-                    self._log("Details were saved to tagger_error.log.")
+                    self._log("Details were saved to " + os.path.join(DATA_DIR, "tagger_error.log"))
                     messagebox.showerror(
                         "Could not load avatars",
-                        payload + "\n\nSee tagger_error.log next to the app for details.",
+                        payload + "\n\nDetails: " + os.path.join(DATA_DIR, "tagger_error.log"),
                     )
                 elif kind == "progress":
                     self.progress.config(value=payload)
