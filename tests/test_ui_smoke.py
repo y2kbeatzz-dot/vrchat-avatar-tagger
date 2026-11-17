@@ -69,9 +69,12 @@ def test_app():
     window.update_progress(2, 3)
     assert window.progress.value() == 2
     assert window.activity_progress.value() == 2
+    # Switch from the login screen to the workspace before rendering.
+    # The fake model is only used offline; no VRChat login is attempted.
+    window.stack.setCurrentIndex(1)
     window.show()
     qt.processEvents()
-    # Exercise the custom avatar rows without ever making an API request.
+    # Exercise custom row painting with the table visible.
     assert not window.library.viewport().grab().isNull()
     window.close()
     qt.processEvents()
