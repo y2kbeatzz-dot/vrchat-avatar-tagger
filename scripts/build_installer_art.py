@@ -77,7 +77,10 @@ def draw_windows():
     draw_centered(d, (240, 772), "with fewer clicks.", font(18), (212, 204, 235, 255))
     draw_centered(d, (240, 856), "FREE  •  OPEN SOURCE", font(13, True), (175, 158, 210, 255))
     image.save(OUT / "installer-wizard.png", optimize=True)
-    image.resize((240, 460), Image.Resampling.LANCZOS).save(OUT / "installer-wizard-small.png", optimize=True)
+    image.convert("RGB").save(OUT / "installer-wizard.bmp")
+    small = image.resize((240, 460), Image.Resampling.LANCZOS)
+    small.save(OUT / "installer-wizard-small.png", optimize=True)
+    small.convert("RGB").save(OUT / "installer-wizard-small.bmp")
 
 
 def main():
