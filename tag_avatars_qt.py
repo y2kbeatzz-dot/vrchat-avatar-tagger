@@ -410,7 +410,7 @@ class TaggerApp(QMainWindow):
         welcome.setSpacing(19)
         welcome.addWidget(named_label("DESIGNED BY KSYUSHA (КСЮША)", "eyebrow"))
         welcome.addSpacing(15)
-        welcome.addWidget(named_label("YOUR AVATARS.\\nYOUR RULES.", "heroTitle"))
+        welcome.addWidget(named_label("YOUR AVATARS.\nYOUR RULES.", "heroTitle"))
         welcome.addWidget(named_label(
             "A better way to organize your VRChat collection. "
             "Search every avatar, build tag sets, preview edits, and apply changes with confidence.",
@@ -641,7 +641,13 @@ class TaggerApp(QMainWindow):
         self.dry.toggled.connect(lambda value: self.run_btn.setText("Preview changes  →" if value else "Apply selected changes  →"))
         right.addWidget(button("Edit one avatar's tags", callback=self.edit_selected))
         right.addStretch()
-        actions_layout.addWidget(layout_panel(right), 2)
+        # Keep the tag studio accessible on smaller notebook displays.
+        studio_scroll = QScrollArea()
+        studio_scroll.setWidgetResizable(True)
+        studio_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        studio_scroll.setMinimumWidth(285)
+        studio_scroll.setWidget(layout_panel(right))
+        actions_layout.addWidget(studio_scroll, 2)
         all_layout.addLayout(actions_layout, 1)
         footer = QHBoxLayout()
         self.progress = QProgressBar()
@@ -664,11 +670,20 @@ class TaggerApp(QMainWindow):
         lay.addWidget(named_label("ACTION HISTORY", "eyebrow"))
         lay.addWidget(named_label("Activity & progress", "pageTitle"))
         lay.addWidget(named_label("Review progress, preview changes, successful updates, and request errors."))
+        activity_header = QHBoxLayout()
+        self.activity_progress = QProgressBar()
+        self.activity_progress.setRange(0, 100)
+        self.activity_progress.setValue(0)
+        activity_header.addWidget(self.activity_progress, 1)
+        self.activity_status = named_label("Waiting for an operation")
+        activity_header.addWidget(self.activity_status)
+        lay.addLayout(activity_header)
         self.activity = QPlainTextEdit()
         self.activity.setReadOnly(True)
         self.activity.setPlainText("Your activity will show here after signing in.\n")
         lay.addWidget(self.activity, 1)
         row = QHBoxLayout()
+        row.addWidget(button("← Back to avatars", callback=lambda: self.change_page(0)))
         row.addWidget(button("Clear activity view", callback=self.activity.clear))
         row.addWidget(button("Clear saved resume records", "danger", self.clear_progress))
         row.addStretch()
@@ -929,6 +944,9 @@ class TaggerApp(QMainWindow):
         self.stop_btn.setEnabled(True)
         self.progress.setRange(0, len(selected))
         self.progress.setValue(0)
+        self.activity_progress.setRange(0, len(selected))
+        self.activity_progress.setValue(0)
+        self.activity_status.setText("Preview running…" if preview else "Applying changes…")
         self.change_page(1)
         self._event(f"{'PREVIEW' if preview else 'APPLY'} started for {len(selected)} avatars.")
         worker = TagWorker(self.api, selected, tags, remove, preview,
@@ -948,7 +966,10 @@ class TaggerApp(QMainWindow):
     def update_progress(self, index, total):
         self.progress.setMaximum(total)
         self.progress.setValue(index)
+        self.activity_progress.setMaximum(total)
+        self.activity_progress.setValue(index)
         self.progress_label.setText(f"{index}/{total}")
+        self.activity_status.setText(f"Processed {index} of {total} avatars")
 
     def avatar_changed(self, avatar_id, tags):
         for avatar in self.avatars:
@@ -967,6 +988,9 @@ class TaggerApp(QMainWindow):
                     f" · changed: {counts['updated']}, unchanged: {counts['unchanged']}, " +
                     f"resumed: {counts['resumed']}, failed: {counts['failed']}")
         self.progress_label.setText("Preview done" if preview else "Done")
+        self.activity_status.setText(
+            f"{'Preview' if preview else 'Update'} complete · {counts['updated']} changes, {counts['failed']} errors"
+        )
 
     def edit_selected(self):
         if self.running:
