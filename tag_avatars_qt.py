@@ -912,30 +912,79 @@ class TaggerApp(QMainWindow):
         )
 
     def refresh(self):
-        if self.api is None or self.running:
+        if self.api is None or self.running or self._closing_requested:
+            return
+        if self.fetch_worker is not None and self.fetch_worker.isRunning():
+            self.statusBar().showMessage("Avatar loading is already in progress…")
             return
         self.refresh_btn.setEnabled(False)
-        self.library_hint.setText("Loading your avatars from VRChat…")
+        self.library_hint.setText("Loading first 100 avatars…")
+        self.statusBar().showMessage("Contacting VRChat · First avatars will appear shortly…")
+        self.avatars.clear()
+        self.filtered.clear()
+        self.selected_avatar_ids.clear()
+        self.selected_stat.setText("0")
+        self.total_stat.setText("0")
+        self.tagged_stat.setText("0")
+        self.library.setRowCount(0)
+        self._warning_loaded = 0
         worker = FetchWorker(self.api)
+        self.fetch_worker = worker
+        worker.page_received.connect(self.avatar_page_received)
         worker.success.connect(self.avatars_loaded)
         worker.error.connect(self.fetch_failed)
         self._worker(worker)
 
+    def avatar_page_received(self, page, total):
+        if self._closing_requested:
+            return
+        self.avatars.extend(page)
+        warning_values = {value for _, value in CONTENT_TAGS}
+        self._warning_loaded += sum(
+            bool(set(a.tags or []) & warning_values) for a in page
+        )
+        self.total_stat.setText(str(total))
+        self.tagged_stat.setText(str(self._warning_loaded))
+        self.library_hint.setText(
+            f"Loaded {total} avatars so far · More pages are loading…"
+        )
+        self.statusBar().showMessage(
+            f"Loaded {total} avatars · You can browse while more load"
+        )
+        if not self._avatar_render_timer.isActive():
+            self._avatar_render_timer.start()
+
     def avatars_loaded(self, avatars):
+        if self._closing_requested:
+            return
+        self._avatar_render_timer.stop()
         self.avatars = list(avatars)
-        self.selected_avatar_ids.clear()
-        self.refresh_btn.setEnabled(True)
         self.total_stat.setText(str(len(self.avatars)))
-        self.tagged_stat.setText(str(sum(bool(set(a.tags or []) & {v for _, v in CONTENT_TAGS}) for a in self.avatars)))
-        self._event(f"Loaded {len(self.avatars)} avatar(s).")
-        self.statusBar().showMessage(f"Loaded {len(self.avatars)} avatars · Ctrl/⌘+F to search")
+        self.tagged_stat.setText(
+            str(sum(
+                bool(set(a.tags or []) & {v for _, v in CONTENT_TAGS})
+                for a in self.avatars
+            ))
+        )
+        self._event(f"Loaded {len(self.avatars)} avatar(s) successfully.")
+        self.statusBar().showMessage(
+            f"Loaded {len(self.avatars)} avatars · Ctrl/⌘+F to search"
+        )
         self.render_avatars()
 
     def fetch_failed(self, message):
-        self.refresh_btn.setEnabled(True)
-        self.library_hint.setText("Avatar loading failed.")
-        self._event("ERROR  Could not load avatars: " + message)
-        QMessageBox.warning(self, "Could not load avatars", message)
+        if self._closing_requested:
+            return
+        self._avatar_render_timer.stop()
+        self.render_avatars()
+        self._event("ERROR  Avatar listing failed: " + message)
+        self.library_hint.setText(
+            f"Loading stopped after {len(self.avatars)} avatars. Refresh to retry."
+        )
+        QMessageBox.warning(
+            self, "Avatar loading interrupted",
+            f"{len(self.avatars)} avatars were loaded before this error:\n\n{message}"
+        )
 
     def render_avatars(self):
         if not hasattr(self, "library"):
