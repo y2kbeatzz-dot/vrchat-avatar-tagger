@@ -23,7 +23,9 @@ def test_app():
     assert window.stack.count() == 2
     assert window.pages.count() == 3
     assert not window.running
-    assert window.run_btn.text().startswith("Preview")
+    assert window.run_btn.text().startswith("Apply")
+    assert window.preview_btn.text().startswith("Preview")
+    assert window.workspace_splitter.count() == 2
     assert window.filter_mode.count() == 5
 
     sample = [
@@ -56,10 +58,9 @@ def test_app():
     window.clear_selection()
     assert not window.selected_avatar_ids
 
-    window.dry.setChecked(False)
-    assert window.run_btn.text().startswith("Apply")
-    window.dry.setChecked(True)
-    assert window.run_btn.text().startswith("Preview")
+    # Preview and Apply have separate controls. Neither can be mistaken for the other.
+    assert "Apply" in window.run_btn.text()
+    assert "Preview" in window.preview_btn.text()
 
     window.toggle_theme()
     assert window.light
