@@ -8,7 +8,7 @@ import threading
 import time
 
 from PySide6.QtCore import Qt, QThread, Signal, QUrl, QItemSelectionModel, QSize
-from PySide6.QtGui import QIcon, QDesktopServices, QPainter, QColor, QFont
+from PySide6.QtGui import QIcon, QDesktopServices, QPainter, QColor, QFont, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QFrame, QLabel, QPushButton, QLineEdit,
     QVBoxLayout, QHBoxLayout, QGridLayout, QStackedWidget, QTableWidget,
@@ -30,7 +30,7 @@ REPO_URL = "https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger"
 WEBSITE_URL = "https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"
 CREATOR_NAME = "Ksyusha (Ксюша)"
 CREATOR_PROFILE_URL = "https://guns.lol/life999"
-VERSION = "1.5.1"
+VERSION = "1.5.2"
 
 
 def named_label(text, style="muted"):
@@ -385,6 +385,41 @@ class TaggerApp(QMainWindow):
         self.light = False
         self.logged_in_name = ""
         self._build_ui()
+        self._install_shortcuts()
+        self.statusBar().showMessage(
+            "Ready · Ctrl/⌘+F to search · Ctrl/⌘+1/2/3 to switch pages"
+        )
+
+    def _install_shortcuts(self):
+        """Accessible native keyboard commands for macOS and Windows."""
+        self.shortcuts = []
+        for sequence, callback in (
+            ("Ctrl+F", self.focus_search),
+            ("Ctrl+R", self.refresh),
+            ("Ctrl+1", lambda: self.workspace_page(0)),
+            ("Ctrl+2", lambda: self.workspace_page(1)),
+            ("Ctrl+3", lambda: self.workspace_page(2)),
+            ("Ctrl+Shift+L", self.toggle_theme),
+            ("F1", lambda: self.workspace_page(2)),
+            ("Escape", self.clear_search),
+        ):
+            shortcut = QShortcut(QKeySequence(sequence), self)
+            shortcut.activated.connect(callback)
+            self.shortcuts.append(shortcut)
+
+    def workspace_page(self, index):
+        if self.stack.currentIndex() == 1:
+            self.change_page(index)
+
+    def focus_search(self):
+        if self.stack.currentIndex() == 1:
+            self.change_page(0)
+            self.search.setFocus()
+            self.search.selectAll()
+
+    def clear_search(self):
+        if self.stack.currentIndex() == 1 and self.pages.currentIndex() == 0 and self.search.hasFocus():
+            self.search.clear()
 
     def _worker(self, worker):
         self.workers.append(worker)
@@ -524,6 +559,7 @@ class TaggerApp(QMainWindow):
         title_col.addWidget(named_label("Search, select, and tag your own avatars."))
         header.addLayout(title_col, 1)
         self.refresh_btn = button("↻  Refresh avatars", callback=self.refresh)
+        self.refresh_btn.setToolTip("Reload your own avatars from VRChat (Ctrl/⌘+R)")
         header.addWidget(self.refresh_btn)
         all_layout.addLayout(header)
         hero = QHBoxLayout()
@@ -558,7 +594,7 @@ class TaggerApp(QMainWindow):
         left.addWidget(named_label("AVATAR LIBRARY", "eyebrow"))
         search = QHBoxLayout()
         self.search = QLineEdit()
-        self.search.setPlaceholderText("⌕  Search avatars by name or tag...")
+        self.search.setPlaceholderText("⌕  Search avatars by name or tag...  (Ctrl/⌘+F)")
         self.search.textChanged.connect(self.render_avatars)
         search.addWidget(self.search, 1)
         search.addWidget(button("Select visible", callback=self.select_visible))
@@ -589,6 +625,7 @@ class TaggerApp(QMainWindow):
         self.library.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.library.itemSelectionChanged.connect(self.selection_changed)
         self.library.itemDoubleClicked.connect(lambda _: self.edit_selected())
+        self.library.setToolTip("Select multiple avatars, or double-click one to edit its tags.")
         left.addWidget(self.library, 1)
         self.library_hint = named_label("Sign in to load your avatars.")
         left.addWidget(self.library_hint)
@@ -810,6 +847,7 @@ class TaggerApp(QMainWindow):
         self.login_status.setText("Connected successfully.")
         self.stack.setCurrentIndex(1)
         self.side_status.setText("●  " + display_name)
+        self.statusBar().showMessage("Signed in as " + display_name + " · Select avatars to begin")
         self._event("Welcome back to your avatar workspace.")
         self._event("Signed in as " + display_name)
         self.refresh()
@@ -836,6 +874,7 @@ class TaggerApp(QMainWindow):
         self.total_stat.setText(str(len(self.avatars)))
         self.tagged_stat.setText(str(sum(bool(set(a.tags or []) & {v for _, v in CONTENT_TAGS}) for a in self.avatars)))
         self._event(f"Loaded {len(self.avatars)} avatar(s).")
+        self.statusBar().showMessage(f"Loaded {len(self.avatars)} avatars · Ctrl/⌘+F to search")
         self.render_avatars()
 
     def fetch_failed(self, message):
@@ -988,6 +1027,9 @@ class TaggerApp(QMainWindow):
                     f" · changed: {counts['updated']}, unchanged: {counts['unchanged']}, " +
                     f"resumed: {counts['resumed']}, failed: {counts['failed']}")
         self.progress_label.setText("Preview done" if preview else "Done")
+        self.statusBar().showMessage(
+            f"Completed · {counts['updated']} affected · {counts['failed']} failed"
+        )
         self.activity_status.setText(
             f"{'Preview' if preview else 'Update'} complete · {counts['updated']} changes, {counts['failed']} errors"
         )
