@@ -95,9 +95,9 @@ jobs:
               --title "VRChat Avatar Tagger $tag — macOS + Windows" \
               --notes-file RELEASE_NOTES.md \
               --latest
+          fi
           echo "Verified release assets:"
           gh release view "$tag" --json assets -q '.assets[].name' | tee release-asset-list.txt
           grep -Fqx "VRChat-Avatar-Tagger-macOS-Apple-Silicon.dmg" release-asset-list.txt
           grep -Fqx "VRChat-Avatar-Tagger-macOS-Intel.dmg" release-asset-list.txt
           grep -Fqx "VRChat-Avatar-Tagger-Windows.zip" release-asset-list.txt
-          fi
