@@ -6,8 +6,9 @@ The UI stays on the main thread. VRChat HTTP requests happen in background QThre
 import sys
 import threading
 import time
+import traceback
 
-from PySide6.QtCore import Qt, QThread, Signal, QUrl, QItemSelectionModel, QSize
+from PySide6.QtCore import Qt, QThread, Signal, QUrl, QItemSelectionModel, QSize, QTimer
 from PySide6.QtGui import QIcon, QDesktopServices, QPainter, QColor, QFont, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QFrame, QLabel, QPushButton, QLineEdit,
@@ -30,7 +31,7 @@ REPO_URL = "https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger"
 WEBSITE_URL = "https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"
 CREATOR_NAME = "Ksyusha (Ксюша)"
 CREATOR_PROFILE_URL = "https://guns.lol/life999"
-VERSION = "1.5.4"
+VERSION = "1.5.5"
 
 
 def named_label(text, style="muted"):
@@ -237,6 +238,7 @@ class LoginWorker(QThread):
 
 
 class FetchWorker(QThread):
+    page_received = Signal(object, int)
     success = Signal(object)
     error = Signal(str)
 
@@ -247,11 +249,17 @@ class FetchWorker(QThread):
 
     def run(self):
         try:
-            result = fetch_owned_avatars(self.api, self.cancelled.is_set)
+            result = fetch_owned_avatars(
+                self.api,
+                stopped=self.cancelled.is_set,
+                on_page=lambda page, total: self.page_received.emit(page, total),
+                cancel_event=self.cancelled,
+            )
             if not self.cancelled.is_set():
                 self.success.emit(result)
         except Exception as exc:
-            self.error.emit(f"{type(exc).__name__}: {exc}")
+            if not self.cancelled.is_set():
+                self.error.emit(f"{type(exc).__name__}: {exc}")
 
 
 class TagWorker(QThread):
@@ -387,6 +395,12 @@ class TaggerApp(QMainWindow):
         self.store = ProgressStore()
         self.workers = []
         self.running = False
+        self.fetch_worker = None
+        self._closing_requested = False
+        self._avatar_render_timer = QTimer(self)
+        self._avatar_render_timer.setSingleShot(True)
+        self._avatar_render_timer.setInterval(180)
+        self._avatar_render_timer.timeout.connect(self.render_avatars)
         self.light = False
         self.logged_in_name = ""
         self._build_ui()
@@ -427,9 +441,23 @@ class TaggerApp(QMainWindow):
             self.search.clear()
 
     def _worker(self, worker):
+        """Keep QThread objects alive until finished, even during window close."""
+        if self._closing_requested:
+            return
         self.workers.append(worker)
-        worker.finished.connect(lambda: self.workers.remove(worker) if worker in self.workers else None)
+        worker.finished.connect(lambda w=worker: self._worker_finished(w))
         worker.start()
+
+    def _worker_finished(self, worker):
+        if worker is self.fetch_worker:
+            self.fetch_worker = None
+            if not self._closing_requested:
+                self.refresh_btn.setEnabled(True)
+        if worker in self.workers:
+            self.workers.remove(worker)
+        if self._closing_requested and not any(w.isRunning() for w in self.workers):
+            # Close on the next UI event, after the last worker has finished.
+            QTimer.singleShot(0, self.close)
 
     def _build_ui(self):
         self.stack = QStackedWidget()
