@@ -49,7 +49,7 @@ jobs:
       - name: Generate app icons (PNG, macOS ICNS and Windows ICO)
         run: python scripts/build_icons.py
       - name: Build desktop app with app icon
-        run: python -m PyInstaller --noconfirm --clean --windowed --name "VRChat Avatar Tagger" --icon "assets/generated/app-icon.${{ runner.os == 'Windows' && 'ico' || 'icns' }}" --collect-all vrchatapi --add-data "banner.png:." tag_avatars_gui.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --name "VRChat Avatar Tagger" --icon "assets/generated/app-icon.${{ runner.os == 'Windows' && 'ico' || 'icns' }}" --collect-all vrchatapi --add-data "banner.png:." --add-data "assets/generated/app-icon.png:." tag_avatars_gui.py
       - name: Package macOS DMG
         if: runner.os == 'macOS'
         shell: bash
