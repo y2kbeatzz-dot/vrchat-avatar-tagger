@@ -1,24 +1,20 @@
-# VRChat Avatar Tagger v1.5.2 — Desktop usability polish
+# VRChat Avatar Tagger v1.5.3 — Secure macOS connection fix
 
-## Desktop UI
-- Added keyboard shortcuts to search, refresh, switch sidebar views, toggle light/dark mode, and open About.
-- Added clearer tooltips in the avatar library and refresh controls.
-- Added a persistent status bar showing login state, avatar load count, and tagging completion results.
-- Retained the v1.5.1 Qt UI with color-coded avatar tags, creator About page and preview-first workflow.
+## Fixed
+- **macOS VRChat sign-in SSL certificate errors:** the desktop app now verifies the API's HTTPS certificates against the trusted certificates in your Mac's system Keychain via `truststore`, rather than relying solely on packaged Python/OpenSSL CA roots.
+- Windows also uses the native trusted certificate store, while Linux continues with its existing trusted OpenSSL system roots.
+- Certificate verification **remains enabled** with full hostname checks; no `verify=False`, no ignored SSL warnings, and no automatic installation of trust roots.
+- Clear, friendly guidance when a VPN, HTTPS-filtering proxy, school/work network, or untrusted root certificate blocks the secure connection.
+- Builds bundle the native TLS trust library in both Mac DMG packages and Windows installer/ZIP.
 
-## Custom installers
-- macOS Apple Silicon and Intel DMG builds retain their custom drag-to-Applications artwork.
-- Windows branded Setup EXE retains the wizard, shortcuts, and uninstall support, and the portable ZIP is still offered.
-- All four installers continue to be published in GitHub Releases automatically.
+## Install
+- On **Mac Apple Silicon or Intel**, download the matching DMG, drag the app to Applications, and reopen the new copy (quit the previous app first).
+- On **Windows**, use the branded Setup EXE or portable ZIP.
+- Downloads: https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest
 
-## Shortcuts
-- Ctrl/Command + F — Search avatars
-- Ctrl/Command + R — Refresh avatars
-- Ctrl/Command + 1/2/3 — Avatars / Activity / About
-- Ctrl/Command + Shift + L — Toggle theme
-- F1 — About
+## If certificate verification still fails
+The server's presented certificate chain may be untrusted *by macOS itself* (e.g., HTTPS interception). Test on a trusted network, check the system date/time, inspect security/VPN software, and ask the administrator of a managed network for help. **Do not bypass certificate verification or install unknown certificates.**
 
 Created by **Ksyusha (Ксюша)** · https://guns.lol/life999
-Official website: https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/
 
-This is an unofficial community project, not affiliated with VRChat. macOS builds are not code-signed or notarized.
+*Unofficial community project, not affiliated with VRChat.*
