@@ -24,11 +24,23 @@ If you'd rather not deal with the command line at all, use the desktop app versi
 `run_gui.bat`. The launcher creates a private environment and installs the required
 package automatically. If startup fails, the launcher stays open and shows the error.
 
-**Mac/Linux:** run:
+**macOS (Apple Silicon or Intel):** download the matching DMG from the [latest GitHub release](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest), open it, and drag **VRChat Avatar Tagger.app** into **Applications**. No Python installation is needed for release builds. These community builds are currently unsigned and not notarized; if macOS blocks launch, use **System Settings → Privacy & Security → Open Anyway** after confirming you trust the download.
+
+**Windows:** download and extract the [Windows ZIP release](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest), then open the included app. The original `run_gui.bat` source launcher remains available.
+
+**macOS/Linux (source install):** install Python 3 with tkinter support and use a private virtual environment:
+
 ```bash
-pip install -r requirements.txt --break-system-packages
-python3 tag_avatars_gui.py
+python3 -m venv .venv
+.venv/bin/python3 -m pip install -r requirements.txt
+.venv/bin/python3 tag_avatars_gui.py
 ```
+
+On Mac you can also use `run_gui_mac.command` (the first run installs dependencies). On Mac, app data is saved to `~/Library/Application Support/VRChat Avatar Tagger/` so packaged apps can run without writing into the app bundle.
+
+**Website:** [VRChat Avatar Tagger Downloads](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/) · [All Releases](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases)
+
+**Maintainers:** merges to `main` build macOS Apple Silicon, macOS Intel and Windows packages, then publish the version listed in `VERSION` to GitHub Releases. `.github/workflows/pages.yml` deploys the website when Pages is configured with **GitHub Actions** as its build/deployment source. Check Actions for build and deployment status.
 
 The app lets you:
 - Log in (handles email/authenticator 2FA with a popup)
@@ -130,9 +142,9 @@ python3 tag_avatars.py --tags sex --limit 20
 ## Notes
 
 - Your username/password are only used locally to log into VRChat's own servers, exactly like the website login. They're entered at runtime (never hardcoded) and nothing is sent anywhere besides VRChat's API.
-- After a successful login, the tool saves a session file (`vrchat_session.cookies`) next to the script so re-running it doesn't need a fresh login every time. **Don't share or commit this file** — it's as sensitive as being logged in. It's already excluded via `.gitignore`.
+- After a successful login, the tool saves a session file (`vrchat_session.cookies`) in its local application data directory (on macOS, `~/Library/Application Support/VRChat Avatar Tagger/`; in source checkouts on Windows/Linux, next to the script) so re-running it doesn't need a fresh login every time. **Don't share or commit this file** — it's as sensitive as being logged in. It's already excluded via `.gitignore`.
 - If the avatar list cannot load, the GUI displays the error and writes technical
-  details to `tagger_error.log`. Do not post that log publicly without checking it
+  details to `tagger_error.log` in its application data directory. Do not post that log publicly without checking it
   for account-related information first.
 - VRChat limits how many login sessions and requests you can make in a short window. The script pauses briefly between requests; don't remove that.
 - This uses [`vrchatapi`](https://github.com/vrchatapi/vrchatapi-python), an unofficial but actively maintained community wrapper around VRChat's API. It isn't officially supported by VRChat.
