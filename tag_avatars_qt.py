@@ -6,8 +6,9 @@ The UI stays on the main thread. VRChat HTTP requests happen in background QThre
 import sys
 import threading
 import time
+import traceback
 
-from PySide6.QtCore import Qt, QThread, Signal, QUrl, QItemSelectionModel, QSize
+from PySide6.QtCore import Qt, QThread, Signal, QUrl, QItemSelectionModel, QSize, QTimer
 from PySide6.QtGui import QIcon, QDesktopServices, QPainter, QColor, QFont, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QFrame, QLabel, QPushButton, QLineEdit,
@@ -30,7 +31,7 @@ REPO_URL = "https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger"
 WEBSITE_URL = "https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/"
 CREATOR_NAME = "Ksyusha (Ксюша)"
 CREATOR_PROFILE_URL = "https://guns.lol/life999"
-VERSION = "1.5.4"
+VERSION = "1.5.5"
 
 
 def named_label(text, style="muted"):
@@ -237,6 +238,7 @@ class LoginWorker(QThread):
 
 
 class FetchWorker(QThread):
+    page_received = Signal(object, int)
     success = Signal(object)
     error = Signal(str)
 
@@ -247,11 +249,17 @@ class FetchWorker(QThread):
 
     def run(self):
         try:
-            result = fetch_owned_avatars(self.api, self.cancelled.is_set)
+            result = fetch_owned_avatars(
+                self.api,
+                stopped=self.cancelled.is_set,
+                on_page=lambda page, total: self.page_received.emit(page, total),
+                cancel_event=self.cancelled,
+            )
             if not self.cancelled.is_set():
                 self.success.emit(result)
         except Exception as exc:
-            self.error.emit(f"{type(exc).__name__}: {exc}")
+            if not self.cancelled.is_set():
+                self.error.emit(f"{type(exc).__name__}: {exc}")
 
 
 class TagWorker(QThread):
@@ -387,6 +395,12 @@ class TaggerApp(QMainWindow):
         self.store = ProgressStore()
         self.workers = []
         self.running = False
+        self.fetch_worker = None
+        self._closing_requested = False
+        self._avatar_render_timer = QTimer(self)
+        self._avatar_render_timer.setSingleShot(True)
+        self._avatar_render_timer.setInterval(180)
+        self._avatar_render_timer.timeout.connect(self.render_avatars)
         self.light = False
         self.logged_in_name = ""
         self._build_ui()
@@ -427,9 +441,23 @@ class TaggerApp(QMainWindow):
             self.search.clear()
 
     def _worker(self, worker):
+        """Keep QThread objects alive until finished, even during window close."""
+        if self._closing_requested:
+            return
         self.workers.append(worker)
-        worker.finished.connect(lambda: self.workers.remove(worker) if worker in self.workers else None)
+        worker.finished.connect(lambda w=worker: self._worker_finished(w))
         worker.start()
+
+    def _worker_finished(self, worker):
+        if worker is self.fetch_worker:
+            self.fetch_worker = None
+            if not self._closing_requested:
+                self.refresh_btn.setEnabled(True)
+        if worker in self.workers:
+            self.workers.remove(worker)
+        if self._closing_requested and not any(w.isRunning() for w in self.workers):
+            # Close on the next UI event, after the last worker has finished.
+            QTimer.singleShot(0, self.close)
 
     def _build_ui(self):
         self.stack = QStackedWidget()
@@ -884,30 +912,82 @@ class TaggerApp(QMainWindow):
         )
 
     def refresh(self):
-        if self.api is None or self.running:
+        if self.api is None or self.running or self._closing_requested:
+            return
+        if self.fetch_worker is not None and self.fetch_worker.isRunning():
+            self.statusBar().showMessage("Avatar loading is already in progress…")
             return
         self.refresh_btn.setEnabled(False)
-        self.library_hint.setText("Loading your avatars from VRChat…")
+        self.library_hint.setText("Loading first 100 avatars…")
+        self.statusBar().showMessage("Contacting VRChat · First avatars will appear shortly…")
+        self.avatars.clear()
+        self.filtered.clear()
+        self.selected_avatar_ids.clear()
+        self.selected_stat.setText("0")
+        self.total_stat.setText("0")
+        self.tagged_stat.setText("0")
+        self.library.setRowCount(0)
+        self._warning_loaded = 0
         worker = FetchWorker(self.api)
+        self.fetch_worker = worker
+        worker.page_received.connect(self.avatar_page_received)
         worker.success.connect(self.avatars_loaded)
         worker.error.connect(self.fetch_failed)
         self._worker(worker)
 
+    def avatar_page_received(self, page, total):
+        if self._closing_requested:
+            return
+        self.avatars.extend(page)
+        warning_values = {value for _, value in CONTENT_TAGS}
+        self._warning_loaded += sum(
+            bool(set(a.tags or []) & warning_values) for a in page
+        )
+        self.total_stat.setText(str(total))
+        self.tagged_stat.setText(str(self._warning_loaded))
+        self.library_hint.setText(
+            f"Loaded {total} avatars so far · More pages are loading…"
+        )
+        self.statusBar().showMessage(
+            f"Loaded {total} avatars · You can browse while more load"
+        )
+        # Render the first page immediately; consolidate later page redraws.
+        # Repainting thousands of table cells for every 100 avatars felt janky.
+        if total <= 100 or total % 500 == 0:
+            if not self._avatar_render_timer.isActive():
+                self._avatar_render_timer.start()
+
     def avatars_loaded(self, avatars):
+        if self._closing_requested:
+            return
+        self._avatar_render_timer.stop()
         self.avatars = list(avatars)
-        self.selected_avatar_ids.clear()
-        self.refresh_btn.setEnabled(True)
         self.total_stat.setText(str(len(self.avatars)))
-        self.tagged_stat.setText(str(sum(bool(set(a.tags or []) & {v for _, v in CONTENT_TAGS}) for a in self.avatars)))
-        self._event(f"Loaded {len(self.avatars)} avatar(s).")
-        self.statusBar().showMessage(f"Loaded {len(self.avatars)} avatars · Ctrl/⌘+F to search")
+        self.tagged_stat.setText(
+            str(sum(
+                bool(set(a.tags or []) & {v for _, v in CONTENT_TAGS})
+                for a in self.avatars
+            ))
+        )
+        self._event(f"Loaded {len(self.avatars)} avatar(s) successfully.")
+        self.statusBar().showMessage(
+            f"Loaded {len(self.avatars)} avatars · Ctrl/⌘+F to search"
+        )
         self.render_avatars()
 
     def fetch_failed(self, message):
-        self.refresh_btn.setEnabled(True)
-        self.library_hint.setText("Avatar loading failed.")
-        self._event("ERROR  Could not load avatars: " + message)
-        QMessageBox.warning(self, "Could not load avatars", message)
+        if self._closing_requested:
+            return
+        self._avatar_render_timer.stop()
+        self.render_avatars()
+        self._event("ERROR  Avatar listing failed: " + message)
+        self.library_hint.setText(
+            f"Loading stopped after {len(self.avatars)} avatars. Refresh to retry."
+        )
+        QMessageBox.warning(
+            self, "Avatar loading interrupted",
+            f"{len(self.avatars)} avatars were loaded before this error:\n\n{message}"
+        )
 
     def render_avatars(self):
         if not hasattr(self, "library"):
@@ -927,24 +1007,28 @@ class TaggerApp(QMainWindow):
             return True
         self.filtered = [avatar for avatar in self.avatars if matches(avatar)]
         self.library.blockSignals(True)
-        self.library.setRowCount(len(self.filtered))
-        for row, avatar in enumerate(self.filtered):
-            tags = list(avatar.tags or [])
-            for col, value in enumerate((str(avatar.name or "Unnamed avatar"),
-                                         ", ".join(tags[:4]) + ("  +" + str(len(tags)-4) if len(tags)>4 else "") if tags else "No tags",
-                                         str(avatar.id))):
-                item = QTableWidgetItem(value)
-                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-                if col == 1:
-                    item.setData(Qt.UserRole, tags)
-                self.library.setItem(row, col, item)
-            self.library.setRowHeight(row, 62)
-            if str(avatar.id) in self.selected_avatar_ids:
-                index = self.library.model().index(row, 0)
-                self.library.selectionModel().select(
-                    index, QItemSelectionModel.Select | QItemSelectionModel.Rows
-                )
-        self.library.blockSignals(False)
+        self.library.setUpdatesEnabled(False)
+        try:
+            self.library.setRowCount(len(self.filtered))
+            for row, avatar in enumerate(self.filtered):
+                tags = list(avatar.tags or [])
+                for col, value in enumerate((str(avatar.name or "Unnamed avatar"),
+                                             ", ".join(tags[:4]) + ("  +" + str(len(tags)-4) if len(tags)>4 else "") if tags else "No tags",
+                                             str(avatar.id))):
+                    item = QTableWidgetItem(value)
+                    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                    if col == 1:
+                        item.setData(Qt.UserRole, tags)
+                    self.library.setItem(row, col, item)
+                self.library.setRowHeight(row, 62)
+                if str(avatar.id) in self.selected_avatar_ids:
+                    index = self.library.model().index(row, 0)
+                    self.library.selectionModel().select(
+                        index, QItemSelectionModel.Select | QItemSelectionModel.Rows
+                    )
+        finally:
+            self.library.setUpdatesEnabled(True)
+            self.library.blockSignals(False)
         self.library_hint.setText(f"Showing {len(self.filtered)} of {len(self.avatars)} avatars · Double-click to edit tags")
         self.selected_stat.setText(str(len(self.selected_avatar_ids)))
 
@@ -1135,9 +1219,22 @@ class TaggerApp(QMainWindow):
         self.activity.appendPlainText(f"[{stamp}]  {message}")
 
     def closeEvent(self, event):
-        if self.running:
-            QMessageBox.information(self, "Operation in progress",
-                "Stop the current operation before closing so progress is preserved.")
+        # QThread's destructor aborts the entire macOS app if the worker is
+        # still running. Request cooperative cancellation and let the *last*
+        # finished signal close the window. Never destroy a running QThread.
+        active = [worker for worker in self.workers if worker.isRunning()]
+        if active:
+            self._closing_requested = True
+            self._avatar_render_timer.stop()
+            self.statusBar().showMessage(
+                "Finishing current VRChat request before closing safely…"
+            )
+            for worker in active:
+                cancelled = getattr(worker, "cancelled", None)
+                if cancelled is not None:
+                    cancelled.set()
+                if isinstance(worker, LoginWorker):
+                    worker.submit_code("")  # release any outstanding 2FA wait
             event.ignore()
             return
         event.accept()
@@ -1149,6 +1246,27 @@ def main():
     app.setOrganizationName("VRChat Avatar Tagger")
     app.setWindowIcon(QIcon(resource_file("app-icon.png")))
     win = TaggerApp()
+
+    def handle_unexpected_exception(exc_type, exc, tb):
+        # An unhandled Qt slot exception must not cause Python to finalize
+        # while background QThreads are still alive (Qt aborts on that).
+        # Keep diagnostics in the local application data directory.
+        from pathlib import Path
+        import os
+        log_path = Path(DATA_DIR) / "tagger_error.log"
+        try:
+            fd = os.open(
+                str(log_path), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600
+            )
+            with os.fdopen(fd, "a", encoding="utf-8") as logfile:
+                traceback.print_exception(exc_type, exc, tb, file=logfile)
+            win.statusBar().showMessage(
+                "An unexpected error occurred · See tagger_error.log in app data"
+            )
+        except Exception:
+            traceback.print_exception(exc_type, exc, tb, file=sys.stderr)
+
+    sys.excepthook = handle_unexpected_exception
     win.show()
     return app.exec()
 

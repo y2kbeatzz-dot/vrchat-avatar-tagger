@@ -45,6 +45,14 @@ VRChat Avatar Tagger is a Python project using the community `vrchatapi` client 
 
 **[🌐 Project website](https://y2kbeatzz-dot.github.io/vrchat-avatar-tagger/)** · **[💜 Ksyusha's profiles](https://guns.lol/life999)** · **[📦 Releases](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases)**
 
+## v1.5.5 — Crash fix and faster avatar loading
+
+**Mac crash resolved in the code:** The crash report showed Qt destroying a live FetchWorker. Closing during a network request now cancels safely and only exits after the worker finishes.
+
+**Avatar library loads faster:** A shared 60-second delay was accidentally used for read-only avatar pages, adding a minute for every 100 avatars. The loader now uses a separate short read pause, displays the first page immediately, and updates its progress as more avatars arrive. Table repainting is throttled to improve responsiveness.
+
+[**Download v1.5.5**](https://github.com/y2kbeatzz-dot/vrchat-avatar-tagger/releases/latest) to replace the older macOS app. Your existing locally saved session and progress data are preserved.
+
 ## v1.5.4 — Apply changes to VRChat
 
 The desktop app now makes the distinction obvious: **Preview changes (no upload)** shows what would change without saving anything, while **Apply tags to VRChat** sends the selected updates after a confirmation dialog. The app counts a save as successful only when VRChat returns the expected tags. Failed or unconfirmed saves are reported clearly in Activity.

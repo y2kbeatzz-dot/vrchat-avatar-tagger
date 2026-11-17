@@ -71,6 +71,9 @@ PROGRESS_FILE = DATA_DIR / "tagger_progress.json"
 # Keep bulk writes well-spaced to respect VRChat's unofficial API guidance.
 # One successful update is one request; verify using its returned Avatar.
 REQUEST_DELAY = 60.0
+# Listing avatars is read-only and paginated; do not apply the much longer
+# write cooldown to reads. 100 avatars are fetched per API request.
+FETCH_PAGE_DELAY = 1.0
 
 CONTENT_TAGS = [
     ("Sexually Suggestive", "content_sex"),
@@ -195,21 +198,46 @@ def authenticate(client, ask_for_code):
     return user
 
 
-def fetch_owned_avatars(api, stopped=lambda: False):
+def fetch_owned_avatars(
+    api,
+    stopped=lambda: False,
+    on_page=None,
+    cancel_event=None,
+    page_delay=FETCH_PAGE_DELAY,
+):
+    """Fetch owned avatars in pages without a 60-second pause per page.
+
+    on_page receives (page, total_received) as each batch is fetched so the
+    desktop can display avatars immediately. The current network call has a
+    bounded timeout; cancellation is checked before subsequent requests and
+    while sleeping. Slow, metered bulk tag writes still use REQUEST_DELAY.
+    """
     avatars = []
     offset = 0
     page_size = 100
     while not stopped():
-        page = api.search_avatars(user="me", n=page_size, offset=offset, release_status="all")
+        page = api.search_avatars(
+            user="me", n=page_size, offset=offset, release_status="all",
+            _request_timeout=(8, 20),
+        )
+        if stopped():
+            break
         if not page:
             break
+        page = list(page)
         avatars.extend(page)
+        if on_page is not None:
+            on_page(page, len(avatars))
         if len(page) < page_size:
             break
         offset += len(page)
-        time.sleep(REQUEST_DELAY)
+        if page_delay > 0:
+            if cancel_event is not None:
+                if cancel_event.wait(page_delay):
+                    break
+            else:
+                time.sleep(page_delay)
     return avatars
-
 
 def update_avatar_tags(api, avatar_id, tags):
     """Apply tags and require confirmation in VRChat's returned Avatar object.
