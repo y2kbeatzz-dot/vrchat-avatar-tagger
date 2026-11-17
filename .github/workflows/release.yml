@@ -60,7 +60,7 @@ jobs:
           python scripts/build_icons.py
           python scripts/build_installer_art.py
       - name: Build branded Qt desktop app
-        run: python -m PyInstaller --noconfirm --clean --windowed --name "VRChat Avatar Tagger" --icon "assets/generated/app-icon.${{ runner.os == 'Windows' && 'ico' || 'icns' }}" --collect-all vrchatapi --add-data "assets/generated/app-icon.png:." tag_avatars_qt.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --name "VRChat Avatar Tagger" --icon "assets/generated/app-icon.${{ runner.os == 'Windows' && 'ico' || 'icns' }}" --collect-all vrchatapi --collect-all truststore --add-data "assets/generated/app-icon.png:." tag_avatars_qt.py
 
       - name: Install macOS DMG authoring tool
         if: runner.os == 'macOS'

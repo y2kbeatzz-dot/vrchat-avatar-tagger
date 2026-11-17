@@ -6,6 +6,8 @@ import atexit
 import http.cookiejar
 import json
 import os
+import ssl
+import sys
 import time
 from pathlib import Path
 from threading import RLock
@@ -18,6 +20,50 @@ from vrchatapi.models.two_factor_email_code import TwoFactorEmailCode
 from vrchatapi.models.update_avatar_request import UpdateAvatarRequest
 
 from app_paths import data_directory, save_session_securely
+
+def _configure_native_tls(client):
+    """Use OS-trusted certificates for this VRChat HTTP client only.
+
+    urllib3's packaged OpenSSL roots can disagree with the macOS Keychain or
+    Windows trust store. Truststore validates the chain against native
+    certificate authorities without disabling verification or hostname checks.
+    """
+    if sys.platform not in ("darwin", "win32"):
+        return
+    import truststore
+    context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.verify_mode = ssl.CERT_REQUIRED
+    context.check_hostname = True
+    # The VRChat SDK builds urllib3's PoolManager during ApiClient init.
+    # Configure its existing manager *before* any network request starts.
+    client.rest_client.pool_manager.connection_pool_kw["ssl_context"] = context
+
+
+def friendly_login_error(exc):
+    """Explain TLS errors without exposing lengthy urllib3 traceback text."""
+    message = str(exc)
+    lowered = message.lower()
+    if (
+        "certificate_verify_failed" in lowered
+        or "certificate verify failed" in lowered
+        or "self-signed certificate" in lowered
+        or "self signed certificate" in lowered
+    ):
+        return (
+            "Secure connection to VRChat could not be verified.\n\n"
+            "The app checks certificates trusted by your operating system. "
+            "If you still see this message, your VPN, security software, "
+            "school/work network, or proxy may be presenting a certificate "
+            "your computer does not trust.\n\n"
+            "Try a different trusted network, check your Mac's date and time, "
+            "and temporarily disconnect a VPN or HTTPS-filtering tool if "
+            "you control it. If this is a managed network, ask its administrator "
+            "to verify the certificate.\n\n"
+            "For your account's safety, SSL verification remains enabled. "
+            "Do not install an unknown root certificate or disable verification."
+        )
+    return f"{type(exc).__name__}: {message}"
+
 
 DATA_DIR = Path(data_directory())
 COOKIE_FILE = DATA_DIR / "vrchat_session.cookies"
@@ -88,10 +134,13 @@ class ProgressStore:
 
 def create_session(username, password):
     config = vrchatapi.Configuration(username=username, password=password)
+    # Never bypass TLS validation, especially for account credentials.
+    config.verify_ssl = True
     # VRChat occasionally omits optional fields that the SDK validates strictly.
     config.client_side_validation = False
     vrchatapi.Configuration.set_default(config)
     client = vrchatapi.ApiClient(config)
+    _configure_native_tls(client)
     client.user_agent = (
         "vrchat-avatar-tagger/2.0 "
         "(github.com/y2kbeatzz-dot/vrchat-avatar-tagger)"
